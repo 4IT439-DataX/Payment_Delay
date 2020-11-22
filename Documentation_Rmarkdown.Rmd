@@ -27,7 +27,7 @@ The initial data was provided in a comma-separated values file, and was loaded a
 |due_date|Payment deadline|Date|YY/MM/DD|
 |payment_date|Date of the payment|Date|YY/MM/DD|
 |product_type|Type of the product|Factor|{1,2,3,4,5}|
-|contract_status||||
+|contract_status|Contract status|Factor|{1,2,3,4,5,6,7,8,9}|
 |business_discount|Business discount provided|Factor|{0,1}|
 |gender|Gender|Factor|{1,2}|
 |marital_status|Marital status|Factor|{1,2,3,4,5,6}|
@@ -50,12 +50,17 @@ The initial data was provided in a comma-separated values file, and was loaded a
 #### Value ranges
 
 #### Attribute correlations
+
+```{r pressure, echo=FALSE}
+plot(correlogram, title("Correlation between numeric attributes"))
+```
+
+We computed correlation coefficients between all possible pairs of numeric variables and discovered strong positive correlation between due amount and paid amount. This could be due to the fact that in the event that the installment has already been paid, the due amount and the paid amount would assume the same value. Correlation between the remaining pairs of numeric variables was either nonexistent or negligible.
+
 We tested for correlation between paired numeric samples using Pearson's product moment correlation coefficient and found the following pairs of attributes to be correlated:
 
 
-```{r correlations}
-knitr::kable(corr_pairs_name, caption = "Pairs of correlated attributes", col.names = c("Attribute 1","Attribute 2","Correlation coefficient"))
-```
+
 
 #### Basic statistics
 

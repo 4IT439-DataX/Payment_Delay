@@ -7,12 +7,14 @@ if (!require(naniar)) install.packages("naniar")
 if (!require(styler)) install.packages("styler")
 if (!require(GGally)) install.packages("GGally")
 if (!require(skimr)) install.packages("skimr")
+if (!require(skimr)) install.packages("ggcorrplot")
 
 library(tidyverse)
 library(naniar)
 library(styler)
 library(GGally)
 library(skimr)
+library(ggcorrplot)
 
 ### Load the initial data ------------------------------------------------------
 
@@ -20,7 +22,7 @@ library(skimr)
 # files to repository
 # path_to_data <- 'D:/..../payment_dates_final.csv'
 path_to_data <- "D:/01 Skola VSE Statistika/DataX/zaverecny projekt/payment_dates_final.csv"
-#path_to_data <- "..\\payment_dates_final.csv"
+# path_to_data <- "..\\payment_dates_final.csv"
 
 data_collection <- read.csv(path_to_data)
 
@@ -73,9 +75,9 @@ data_collection <- data_collection %>%
 data_collection <- data_collection %>%
   mutate(due_amount = as.numeric(due_amount))
 data_collection <- data_collection %>%
-  mutate(payed_amount = as.numeric(payed_ammount))
+  mutate(paid_amount = as.numeric(payed_ammount))
 
-# Remove feature "payed_ammount" which was replaced by feature "payed_amount"
+# Remove feature "payed_ammount" which was replaced by feature "paid_amount"
 data_collection <- subset(data_collection, select = -payed_ammount)
 
 # Create a feature for delay in days
@@ -90,51 +92,40 @@ data_collection <- data_collection %>%
 str(data_collection)
 
 # Analyze correlations among numeric features
-corr_pairs_name <- matrix(nrow = choose(ncol(data_collection), 2), ncol = 3)
-numeric_rel <- matrix(nrow = choose(ncol(data_collection), 2), ncol = 2)
-corr_vector <- vector("integer")
-iteration <- 0
-for (i in c(9:(ncol(data_collection) - 1))) {
-  if (is.numeric(data_collection[, i])) {
-    for (j in c((i + 1):ncol(data_collection))) {
-      iteration <- iteration + 1
-      if (is.numeric(data_collection[, j])) {
-        correlation <- cor.test(
-          x = data_collection[, i],
-          y = data_collection[, j]
-        )
-        if (correlation$p.value <= 0.05) {
-          numeric_rel[iteration, ] <- c(i, j)
-          corr_pairs_name[iteration, 1] <- names(data_collection)[i]
-          corr_pairs_name[iteration, 2] <- names(data_collection)[j]
-          corr_pairs_name[iteration, 3] <- round(correlation$estimate, digits = 4)
-          corr_vector <- c(corr_vector, i, j)
-        }
-      }
-    }
-  }
-}
+#  Compute a matrix of correlation p-values
+p.mat <- data_collection %>%
+  select_if(is.numeric) %>%
+  cor_pmat()
 
-# Save the pairs of numeric features that are correlated into a data frame
-corr_pairs_name <- as.data.frame(corr_pairs_name)
-corr_pairs_name <- corr_pairs_name %>%
-  filter_all(any_vars(!is.na(.)))
-numeric_rel <- as.data.frame(numeric_rel)
-numeric_rel <- numeric_rel %>%
-  filter_all(any_vars(!is.na(.)))
+correlogram <- data_collection %>%
+  drop_na() %>%
+  select_if(is.numeric) %>%
+  cor() %>%
+  ggcorrplot(
+    type = "lower", ggtheme = theme_minimal, p.mat = p.mat,
+    colors = c("#6D9EC1", "white", "#E46726"),
+    show.diag = T, lab_size = 5, title = "Correlation Matrix",
+    legend.title = "Correlation Value",
+    outline.color = "white", hc.order = T
+  )
 
-# Create correlation plots and export them into PNG files
-corr_vector <- unique(corr_vector)
-par(mfrow = c(length(corr_vector), length(corr_vector)))
-for (i in 1:nrow(numeric_rel)) {
-  x <- data_collection[, numeric_rel[i, 1]]
-  y <- data_collection[, numeric_rel[i, 2]]
-  g <- ggplot(data_collection, aes(x, y)) +
-    geom_point(size = 1) +
-    xlab(names(data_collection)[numeric_rel[i, 1]]) +
-    ylab(names(data_collection)[numeric_rel[i, 2]])
-  ggsave(filename = paste0("correlation_", i, ".png"), g, width = 14, height = 10, units = "cm")
-}
+# Compute correlation matrix between all possible pairs of variables and select
+#   only rows containing moderate or strong values of correlation coefficient
+data_collection %>%
+  select_if(is.numeric) %>%
+  cor() %>% 
+  round(., 2) %>% 
+  data.frame %>%
+  rownames_to_column("rows") %>%
+  mutate(across(), replace(., . == 1, 0)) %>%
+  column_to_rownames("rows") %>%
+  filter_all(any_vars(abs(.) >= 0.3))
+
+correlation <- cor.test(data_collection$due_amount, data_collection$paid_amount, 
+              method = "pearson")
+
+ggpairs(data_collection, columns = c("due_amount", "paid_amount"))
+
 
 # Examine relationship between categorical features using chi-squared test with
 #   the significance level 0.05
@@ -166,34 +157,10 @@ categorical_rel <- categorical_rel %>%
 
 cont_vector <- unique(cont_vector)
 
-# Suggestions
-data_collection %>%
-  group_by(product_type) %>%
-  summarize(
-    n_records = n(), n_contracts = n_distinct(contract_id),
-    mean_payed_amount = mean(payed_amount), min_birth_year = min(birth_year)
-  )
-
-ggplot(data_collection, aes(x = product_type, y = payed_amount)) +
-  geom_boxplot() +
-  theme_minimal() +
-  labs(
-    title = "Boxplot of paid amount by product type",
-    x = "Product type", y = "Paid Amount"
-  )
-
-ggplot(data_collection, aes(x = payed_amount)) +
-  geom_histogram(fill = "limegreen", alpha = 0.5) +
-  theme_minimal() +
-  labs(
-    title = "Histogram of paid amount",
-    x = "Paid amount", y = "Count"
-  )
-
 
 # Data exploration--------------------------------------------------------------
 
-# Analyze properties of interesting attributes in detail include graphs and 
+# Analyze properties of interesting attributes in detail include graphs and
 #   plots
 
 # Summary statistics of the data
@@ -343,32 +310,32 @@ data_collection <- na.omit(data_collection)
 ## Summary for each attribute
 headofTable <- c(
   "Num. of Children", "Num. Other Product", "Year of Birth",
-  "Due amount", "payed amount", "delay"
+  "Due amount", "paid amount", "delay"
 )
 EX <- c(
   mean(data_collection$number_of_children),
   mean(data_collection$number_other_product), mean(data_collection$birth_year),
-  mean(data_collection$due_amount), mean(data_collection$payed_amount),
+  mean(data_collection$due_amount), mean(data_collection$paid_amount),
   mean(data_collection$delay)
 )
 VarX <- c(
   var(data_collection$number_of_children),
   var(data_collection$number_other_product), var(data_collection$birth_year),
-  var(data_collection$due_amount), var(data_collection$payed_amount),
+  var(data_collection$due_amount), var(data_collection$paid_amount),
   var(data_collection$delay)
 )
 Median <- c(
   median(data_collection$number_of_children),
   median(data_collection$number_other_product),
   median(data_collection$birth_year), median(data_collection$due_amount),
-  median(data_collection$payed_amount), median(data_collection$delay)
+  median(data_collection$paid_amount), median(data_collection$delay)
 )
 Q1 <- c(
   quantile(data_collection$number_of_children, probs = 1 / 4),
   quantile(data_collection$number_other_product, probs = 1 / 4),
   quantile(data_collection$birth_year, probs = 1 / 4),
   quantile(data_collection$due_amount, probs = 1 / 4),
-  quantile(data_collection$payed_amount, probs = 1 / 4),
+  quantile(data_collection$paid_amount, probs = 1 / 4),
   quantile(data_collection$delay, probs = 1 / 4)
 )
 Q3 <- c(
@@ -376,19 +343,19 @@ Q3 <- c(
   quantile(data_collection$number_other_product, probs = c(3 / 4)),
   quantile(data_collection$birth_year, probs = c(3 / 4)),
   quantile(data_collection$due_amount, probs = c(3 / 4)),
-  quantile(data_collection$payed_amount, probs = c(3 / 4)),
+  quantile(data_collection$paid_amount, probs = c(3 / 4)),
   quantile(data_collection$delay, probs = 3 / 4)
 )
 Min <- c(
   min(data_collection$number_of_children),
   min(data_collection$number_other_product),
   min(data_collection$birth_year), min(data_collection$due_amount),
-  min(data_collection$payed_amount), min(data_collection$delay)
+  min(data_collection$paid_amount), min(data_collection$delay)
 )
 Max <- c(
   max(data_collection$number_of_children),
   max(data_collection$number_other_product), max(data_collection$birth_year),
-  max(data_collection$due_amount), max(data_collection$payed_amount),
+  max(data_collection$due_amount), max(data_collection$paid_amount),
   max(data_collection$delay)
 )
 
@@ -400,7 +367,7 @@ summaryData <- distinct(data.frame(headofTable, EX, VarX, Median, Q1, Q3, Min,
 ############## exploring Data ########################
 
 #### Data statistic ####
-# Statistic addiction delay on gender
+# Statistical dependence of delay on gender
 meanG_D <- data_collection %>%
   group_by(gender) %>%
   summarise(mean = mean(delay))
@@ -418,10 +385,12 @@ minG_D <- data_collection %>%
   summarise(min = min(delay))
 
 Q1G_D <- data_collection %>%
+  drop_na() %>%
   group_by(gender) %>%
   summarise(Q1 = quantile(delay, probs = 1 / 4))
 
 Q3G_D <- data_collection %>%
+  drop_na() %>%
   group_by(gender) %>%
   summarise(Q3 = quantile(delay, probs = 3 / 4))
 
@@ -430,37 +399,37 @@ data_GD <- data.frame(meanG_D, medG_D[, 2], minG_D[, 2], maxG_D[, 2],
   check.names = FALSE
 )
 
-# Statistic addiction payed amount to gender
+# Statistical dependence of paid amount on gender
 meanG_PA <- data_collection %>%
   group_by(gender) %>%
-  summarise(mean = mean(payed_amount))
+  summarise(mean = mean(paid_amount))
 
 medG_PA <- data_collection %>%
   group_by(gender) %>%
-  summarise(med = median(payed_amount))
+  summarise(med = median(paid_amount))
 
 maxG_PA <- data_collection %>%
   group_by(gender) %>%
-  summarise(max = max(payed_amount))
+  summarise(max = max(paid_amount))
 
 minG_PA <- data_collection %>%
   group_by(gender) %>%
-  summarise(min = min(payed_amount))
+  summarise(min = min(paid_amount))
 
 Q1G_PA <- data_collection %>%
   group_by(gender) %>%
-  summarise(Q1 = quantile(payed_amount, probs = 1 / 4))
+  summarise(Q1 = quantile(paid_amount, probs = 1 / 4))
 
 Q3G_PA <- data_collection %>%
   group_by(gender) %>%
-  summarise(Q3 = quantile(payed_amount, probs = 3 / 4))
+  summarise(Q3 = quantile(paid_amount, probs = 3 / 4))
 
 data_GPA <- data.frame(meanG_PA, medG_PA[, 2], minG_PA[, 2], maxG_PA[, 2],
   Q1G_PA[, 2], Q3G_PA[, 2],
   check.names = FALSE
 )
 
-# Statistic addiction due amount to gender
+# Statistical dependence of due amount on gender
 meanG_DA <- data_collection %>%
   group_by(gender) %>%
   summarise(mean = mean(due_amount))
@@ -486,32 +455,169 @@ Q3G_DA <- data_collection %>%
   summarise(Q3 = quantile(due_amount, probs = 3 / 4))
 
 data_GDA <- data.frame(meanG_DA, medG_DA[, 2], minG_DA[, 2], maxG_DA[, 2],
-                       Q1G_DA[, 2], Q3G_DA[, 2],
-                       check.names = FALSE
+  Q1G_DA[, 2], Q3G_DA[, 2],
+  check.names = FALSE
 )
-# Addiction payed amount to gender, product type and business discount
+# Dependence of paid amount on gender, product type and business discount
 data_collection %>%
   group_by(gender, product_type, business_discount) %>%
-  summarise(payedAmount = mean(payed_amount)) %>%
-  spread(gender, payedAmount)
+  summarise(paidAmount = mean(paid_amount)) %>%
+  spread(gender, paidAmount)
 
 data_collection %>%
   group_by(gender, number_of_children) %>%
   summarise(delay = mean(delay)) %>%
   spread(gender, delay)
 
+# Density plots for numeric attributes
+par(mfrow = c(2, 4))
+data_collection %>%
+  drop_na() %>%
+  ggplot(aes(number_of_children), colors = ) +
+  geom_density() +
+  geom_vline(xintercept = mean(data_collection$number_of_children), 
+             color = "blue", linetype = "dashed", size = 1) +
+  labs(
+    title = "Histogram of number_of_children",
+    x = "Number of children",
+    y = "Count"
+  ) +
+  theme_minimal()
 
+data_collection %>%
+  drop_na() %>%
+  ggplot(aes(number_other_product)) +
+  geom_density() +
+  geom_vline(xintercept = mean(data_collection$number_other_product), 
+             color = "blue", linetype = "dashed", size = 1) +
+  labs(
+    title = "Histogram of number_other_product",
+    x = "Number of other products",
+    y = "Count"
+  ) +
+  theme_minimal()
 
+data_collection %>%
+  drop_na() %>%
+  ggplot(aes(birth_year)) +
+  geom_density() +
+  geom_vline(xintercept = mean(data_collection$birth_year), color = "blue", 
+             linetype = "dashed", size = 1) +
+  labs(
+    title = "Histogram of birth_year",
+    x = "Birth year",
+    y = "Count"
+  ) +
+  theme_minimal()
 
+data_collection %>%
+  drop_na() %>%
+  ggplot(aes(birth_month)) +
+  geom_density() +
+  geom_vline(xintercept = mean(data_collection$birth_month), color = "blue", 
+             linetype = "dashed", size = 1) +
+  labs(
+    title = "Histogram of birth_month",
+    x = "Birth month",
+    y = "Count"
+  ) +
+  theme_minimal()
 
+data_collection %>%
+  drop_na() %>%
+  ggplot(aes(cf_val)) +
+  geom_density() +
+  geom_vline(xintercept = mean(data_collection$cf_val), color = "blue", 
+             linetype = "dashed", size = 1) +
+  labs(
+    title = "Histogram of cf_val",
+    x = "CF value",
+    y = "Count"
+  ) +
+  theme_minimal()
 
+data_collection %>%
+  drop_na() %>%
+  ggplot(aes(cf_val)) +
+  geom_density() +
+  geom_vline(xintercept = mean(data_collection$due_amount), color = "blue", 
+             linetype = "dashed", size = 1) +
+  labs(
+    title = "Histogram of due_amount",
+    x = "Due amount",
+    y = "Count"
+  ) +
+  theme_minimal()
 
+data_collection %>%
+  drop_na() %>%
+  ggplot(aes(paid_amount)) +
+  geom_density() +
+  geom_vline(xintercept = mean(data_collection$paid_amount), color = "blue", 
+             linetype = "dashed", size = 1) +
+  labs(
+    title = "Histogram of paid amount",
+    x = "Paid amount",
+    y = "Count"
+  ) +
+  theme_minimal()
 
+data_collection %>%
+  drop_na() %>%
+  ggplot(aes(delay)) +
+  geom_density() +
+  geom_vline(xintercept = mean(data_collection$delay, na.rm = TRUE), 
+             color = "blue", 
+             linetype = "dashed", size = 1) +
+  labs(
+    title = "Histogram of delay",
+    x = "Delay",
+    y = "Count"
+  ) +
+  theme_minimal()
 
+# Density plot of paid amount according to total earnings
+data_collection %>%
+  drop_na() %>%
+  ggplot(aes(paid_amount, color = total_earnings)) +
+  geom_density() +
+  geom_vline(xintercept = mean(data_collection$paid_amount), 
+             linetype = "dashed", size = 1) +
+  labs(
+    title = "Histogram of paid amount by total earnings",
+    x = "Paid amount",
+    y = "Count"
+  ) +
+  theme_minimal()
 
+# Boxplot of paid amount according to product type
+data_collection %>%
+  drop_na() %>%
+  ggplot(aes(x = product_type, y = paid_amount, 
+             color = product_type)) +
+  geom_boxplot() +
+  geom_hline(yintercept = mean(data_collection$paid_amount, na.rm = TRUE), 
+             linetype = "dashed", size = 1) +
+  labs(
+    title = "Boxplot of paid amount",
+    x = "Product type",
+    y = "Paid amount"
+  ) +
+  theme_minimal()
 
-
-
+# Density plot of due amount according to contract status
+data_collection %>%
+  drop_na() %>%
+  ggplot(aes(due_amount, color = contract_status)) +
+  geom_density() + facet_grid(contract_status ~ .) +
+  geom_vline(xintercept = mean(data_collection$due_amount, na.rm = TRUE), 
+             linetype = "dashed", size = 1) +
+  labs(
+    title = "Histogram of due amount by contract status",
+    x = "Due amount",
+    y = "Count"
+  ) +
+  theme_minimal()
 
 # Data preparation -------------------------------------------------------------
 # Clean the data - estimation of missing data
