@@ -13,6 +13,66 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(naniar)
+library(styler)
+library(GGally)
+library(skimr)
+library(ggcorrplot)
+```
+
+```{r load, eval=TRUE, include=FALSE, cache=TRUE}
+data_collection <- read.csv("D:/Dokumenty/ŠKOLA/4IT439 Data-X – aplikované analytické datové modely v reálných úlohách/Semestrálka/payment_dates_final.csv")
+data_collection <- data_collection %>%
+  mutate(due_date = as.Date(due_date, format = "%Y-%m-%d"))
+data_collection <- data_collection %>%
+  mutate(payment_date = as.Date(payment_date, format = "%Y-%m-%d"))
+data_collection <- data_collection %>%
+  mutate(product_type = as.factor(product_type))
+data_collection <- data_collection %>%
+  mutate(contract_status = as.factor(contract_status))
+data_collection <- data_collection %>%
+  mutate(business_discount = as.factor(business_discount))
+data_collection <- data_collection %>%
+  mutate(gender = as.factor(gender))
+data_collection <- data_collection %>%
+  mutate(marital_status = as.factor(marital_status))
+data_collection <- data_collection %>%
+  mutate(clients_phone = as.factor(clients_phone))
+data_collection <- data_collection %>%
+  mutate(client_mobile = as.factor(client_mobile))
+data_collection <- data_collection %>%
+  mutate(client_email = as.factor(client_email))
+data_collection <- data_collection %>%
+  mutate(total_earnings = factor(total_earnings, labels = c(
+    "level1", "level2", "level3", "level4",
+    "level5", "level6", "level7", "level8",
+    "level9", "level10", "not_declared"
+  )))
+data_collection <- data_collection %>%
+  mutate(living_area = as.factor(living_area))
+data_collection <- data_collection %>%
+  mutate(different_contact_area = as.factor(different_contact_area))
+data_collection <- data_collection %>%
+  mutate(kc_flag = as.factor(kc_flag))
+data_collection <- data_collection %>%
+  mutate(cf_val = as.numeric(cf_val))
+data_collection <- data_collection %>%
+  mutate(kzmz_flag = as.factor(kzmz_flag))
+data_collection <- data_collection %>%
+  mutate(due_amount = as.numeric(due_amount))
+data_collection <- data_collection %>%
+  mutate(paid_amount = as.numeric(payed_ammount))
+data_collection <- subset(data_collection, select = -payed_ammount)
+data_collection$delay <- difftime(data_collection$payment_date,
+  data_collection$due_date, tz,
+  units = "days"
+)
+data_collection <- data_collection %>%
+  mutate(delay = as.numeric(delay))
+p.mat <- data_collection %>%
+  select_if(is.numeric) %>%
+  cor_pmat
 ```
 
 ## Data Understanding
@@ -49,23 +109,186 @@ The initial data was provided in a comma-separated values file, and was loaded a
 
 #### Value ranges
 
-#### Attribute correlations
 
-```{r pressure, echo=FALSE}
-plot(correlogram, title("Correlation between numeric attributes"))
+
+#### Attribute correlations
+```{r correlogram, echo=FALSE}
+correlogram <- data_collection %>%
+  drop_na() %>%
+  select_if(is.numeric) %>%
+  cor %>%
+  ggcorrplot(
+    p.mat = p.mat,
+    type = "lower", hc.order = T, ggtheme = theme_minimal,
+    colors = c("#6D9EC1", "white", "#E46726"),
+    show.diag = T, lab_size = 5, title = "Correlation Matrix",
+    legend.title = "Correlation Value",
+    outline.color = "white" 
+  )
+print(correlogram)
 ```
 
 We computed correlation coefficients between all possible pairs of numeric variables and discovered strong positive correlation between due amount and paid amount. This could be due to the fact that in the event that the installment has already been paid, the due amount and the paid amount would assume the same value. Correlation between the remaining pairs of numeric variables was either nonexistent or negligible.
-
-We tested for correlation between paired numeric samples using Pearson's product moment correlation coefficient and found the following pairs of attributes to be correlated:
+Then, the significance of correlation between due amount and paid amount was tested using Pearson's product moment correlation coefficient. The pair of attributes was found to be significantly correlated with a correlation coefficient  of 0.76 and p-value less than 2.2e-16.
 
 
 
 
 #### Basic statistics
 
-```{r statistics}
+```{r statistics, echo=FALSE}
 summary(data_collection[c(1:24)])
+```
+
+
+```{r density, echo=FALSE, fig.width=10, fig.height=11}
+density_plots <- list()
+density_plots[[1]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(contract_id)) +
+  geom_density() +
+  geom_vline(xintercept = mean(data_collection$contract_id), 
+             color = "blue", linetype = "dashed", size = 1) +
+  labs(
+    title = "Distribution of contract_id",
+    x = "Contract ID",
+    y = "Count"
+  ) +
+  theme_minimal()
+density_plots[[2]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(payment_order), colors = ) +
+  geom_density() +
+  geom_vline(xintercept = mean(data_collection$payment_order, na.rm = TRUE), 
+             color = "blue", linetype = "dashed", size = 1) +
+  labs(
+    title = "Distribution of payment_order",
+    x = "Payment order",
+    y = "Count"
+  ) +
+  theme_minimal()
+density_plots[[3]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(number_of_children), colors = ) +
+  geom_bar() +
+  geom_vline(xintercept = mean(data_collection$number_of_children), 
+             color = "blue", linetype = "dashed", size = 1) +
+  labs(
+    title = "Histogram of number_of_children",
+    x = "Number of children",
+    y = "Count"
+  ) + scale_x_continuous(breaks = seq(from = 0, to = 10, by = 1)) +
+  theme_minimal()
+density_plots[[4]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(number_other_product)) +
+  geom_bar() +
+  geom_vline(xintercept = mean(data_collection$number_other_product), 
+             color = "blue", linetype = "dashed", size = 1) +
+  labs(
+    title = "Histogram of number_other_product",
+    x = "Number of other products",
+    y = "Count"
+  ) + scale_x_continuous(breaks = seq(from = 1, to = 13, by = 1)) +
+  theme_minimal()
+density_plots[[5]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(birth_year)) +
+  geom_bar() +
+  geom_vline(xintercept = mean(data_collection$birth_year), color = "blue", 
+             linetype = "dashed", size = 1) +
+  labs(
+    title = "Histogram of birth_year",
+    x = "Birth year",
+    y = "Count"
+  ) + scale_x_continuous(breaks = seq(from = 1900, to = 2000, by = 10)) +
+  theme_minimal()
+density_plots[[6]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(birth_month)) +
+  geom_bar() +
+  geom_vline(xintercept = mean(data_collection$birth_month), color = "blue", 
+             linetype = "dashed", size = 1) +
+  labs(
+    title = "Histogram of birth_month",
+    x = "Birth month",
+    y = "Count"
+  ) + scale_x_continuous(breaks = seq(from = 1, to = 12, by = 1)) +
+  theme_minimal()
+density_plots[[7]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(cf_val)) +
+  geom_density() +
+  geom_vline(xintercept = mean(data_collection$cf_val, na.rm = TRUE), color = "blue", 
+             linetype = "dashed", size = 1) +
+  labs(
+    title = "Distribution of cf_val",
+    x = "CF value",
+    y = "Count"
+  ) +
+  theme_minimal()
+density_plots[[8]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(due_amount)) +
+  geom_density() +
+  geom_vline(xintercept = mean(data_collection$due_amount), color = "blue", 
+             linetype = "dashed", size = 1) +
+  labs(
+    title = "Distribution of due_amount",
+    x = "Due amount",
+    y = "Count"
+  ) +
+  theme_minimal()
+density_plots[[9]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(paid_amount)) +
+  geom_density() +
+  geom_vline(xintercept = mean(data_collection$paid_amount), color = "blue", 
+             linetype = "dashed", size = 1) +
+  labs(
+    title = "Distribution of paid amount",
+    x = "Paid amount",
+    y = "Count"
+  ) +
+  theme_minimal()
+density_plots[[10]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(delay)) +
+  geom_density() +
+  geom_vline(xintercept = mean(data_collection$delay, na.rm = TRUE), 
+             color = "blue", 
+             linetype = "dashed", size = 1) +
+  labs(
+    title = "Distribution of delay",
+    x = "Delay",
+    y = "Count"
+  ) +
+  theme_minimal()
+density_plots[[11]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(due_date)) +
+  geom_density() +
+  geom_vline(xintercept = mean(data_collection$due_date), 
+             color = "blue", linetype = "dashed", size = 1) +
+  labs(
+    title = "Distribution of due_date",
+    x = "Due date",
+    y = "Count"
+  ) + scale_x_date(date_labels = "%Y") +
+  theme_minimal()
+density_plots[[12]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(payment_date)) +
+  geom_density() +
+  geom_vline(xintercept = mean(data_collection$payment_date, na.rm = T), 
+             color = "blue", linetype = "dashed", size = 1) +
+  labs(
+    title = "Distribution of payment_date",
+    x = "Payment date",
+    y = "Count"
+  ) + scale_x_date(date_labels = "%Y") +
+  theme_minimal()
+density_plots <- gridExtra::grid.arrange(grobs = density_plots, ncol = 2)
 ```
 
 This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.

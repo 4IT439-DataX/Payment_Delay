@@ -28,7 +28,7 @@ data_collection <- read.csv(path_to_data)
 
 ### Data understanding ---------------------------------------------------------
 
-# Data description -------------------------------------------------------------
+## Data description ------------------------------------------------------------
 
 # Data volume (number of rows and columns)
 nrow <- nrow(data_collection)
@@ -91,8 +91,8 @@ data_collection <- data_collection %>%
 # Display the internal structure of the data
 str(data_collection)
 
-# Analyze correlations among numeric features
-#  Compute a matrix of correlation p-values
+# Analyze correlations between variables ---------------------------------------
+# Compute a matrix of correlation p-values and plot the correlation matrix
 p.mat <- data_collection %>%
   select_if(is.numeric) %>%
   cor_pmat()
@@ -102,33 +102,33 @@ correlogram <- data_collection %>%
   select_if(is.numeric) %>%
   cor() %>%
   ggcorrplot(
-    type = "lower", ggtheme = theme_minimal, p.mat = p.mat,
+    p.mat = p.mat,
+    type = "lower", hc.order = T, ggtheme = theme_minimal,
     colors = c("#6D9EC1", "white", "#E46726"),
     show.diag = T, lab_size = 5, title = "Correlation Matrix",
     legend.title = "Correlation Value",
-    outline.color = "white", hc.order = T
+    outline.color = "white"
   )
 
 # Compute correlation matrix between all possible pairs of variables and select
 #   only rows containing moderate or strong values of correlation coefficient
 data_collection %>%
   select_if(is.numeric) %>%
-  cor() %>% 
-  round(., 2) %>% 
-  data.frame %>%
+  cor() %>%
+  round(., 2) %>%
+  data.frame() %>%
   rownames_to_column("rows") %>%
   mutate(across(), replace(., . == 1, 0)) %>%
   column_to_rownames("rows") %>%
   filter_all(any_vars(abs(.) >= 0.3))
 
-correlation <- cor.test(data_collection$due_amount, data_collection$paid_amount, 
-              method = "pearson")
-
-ggpairs(data_collection, columns = c("due_amount", "paid_amount"))
-
+# Test the significance of found correlation
+correlation <- cor.test(data_collection$due_amount, data_collection$paid_amount,
+  method = "pearson"
+)
 
 # Examine relationship between categorical features using chi-squared test with
-#   the significance level 0.05
+#   the significance level of 0.05
 # Overestimating the matrix size saves time compared to building the matrix one
 #  row at a time:
 categorical_rel <- matrix(nrow = choose(ncol(data_collection), 2), ncol = 2)
@@ -157,11 +157,29 @@ categorical_rel <- categorical_rel %>%
 
 cont_vector <- unique(cont_vector)
 
+data_collection %>%
+  ggplot(aes(data_collection[, 6], fill = data_collection[, 6])) +
+  geom_bar() +
+  facet_grid(~ data_collection[, 5]) +
+  labs(
+    title = paste0(
+      "Distribution of ", names(data_collection)[6], " by ",
+      names(data_collection)[5]
+    ),
+    fill = paste0(names(data_collection)[6]),
+    x = paste0(names(data_collection)[6]),
+    y = "Count",
+    color = paste0()
+  ) +
+  theme_minimal()
+
+data_collection %>%
+  ggplot(aes(data_collection[, 5])) +
+  geom_bar(aes(fill = data_collection[, 6]), positon = "fill")
+
+
 
 # Data exploration--------------------------------------------------------------
-
-# Analyze properties of interesting attributes in detail include graphs and
-#   plots
 
 # Summary statistics of the data
 # Check attribute value ranges, coverage, NAs occurence
@@ -191,7 +209,6 @@ data_collection %>%
 
 
 # Check for plausibility of values
-# Check for plausibility of values
 for (i in c(1:ncol)) {
   if (is.factor(data_collection[, i])) {
     print(colnames(data_collection[i]))
@@ -200,30 +217,200 @@ for (i in c(1:ncol)) {
   }
 }
 
+# Univariate analysis of categorical variables ---------------------------------
+frequencies <- list()
+frequencies[[1]] <- data_collection %>%
+  group_by(product_type) %>%
+  summarize(frequency = n()) %>%
+  arrange(desc(frequency)) %>%
+  mutate(
+    relative_frequency = frequency / sum(frequency),
+    relative_cumulative_frequency = cumsum(relative_frequency),
+    relative_frequency = round(100 * relative_frequency, 2),
+    relative_cumulative_frequency = round(
+      100 * relative_cumulative_frequency,
+      2
+    ), nr = row_number(-frequency)
+  )
+frequencies[[2]] <- data_collection %>%
+  group_by(contract_status) %>%
+  summarize(frequency = n()) %>%
+  arrange(desc(frequency)) %>%
+  mutate(
+    relative_frequency = frequency / sum(frequency),
+    relative_cumulative_frequency = cumsum(relative_frequency),
+    relative_frequency = round(100 * relative_frequency, 2),
+    relative_cumulative_frequency = round(
+      100 * relative_cumulative_frequency,
+      2
+    ), nr = row_number(-frequency)
+  )
+frequencies[[3]] <- data_collection %>%
+  group_by(business_discount) %>%
+  summarize(frequency = n()) %>%
+  arrange(desc(frequency)) %>%
+  mutate(
+    relative_frequency = frequency / sum(frequency),
+    relative_cumulative_frequency = cumsum(relative_frequency),
+    relative_frequency = round(100 * relative_frequency, 2),
+    relative_cumulative_frequency = round(
+      100 * relative_cumulative_frequency,
+      2
+    ), nr = row_number(-frequency)
+  )
+frequencies[[4]] <- data_collection %>%
+  group_by(gender) %>%
+  summarize(frequency = n()) %>%
+  arrange(desc(frequency)) %>%
+  mutate(
+    relative_frequency = frequency / sum(frequency),
+    relative_cumulative_frequency = cumsum(relative_frequency),
+    relative_frequency = round(100 * relative_frequency, 2),
+    relative_cumulative_frequency = round(
+      100 * relative_cumulative_frequency,
+      2
+    ), nr = row_number(-frequency)
+  )
+frequencies[[5]] <- data_collection %>%
+  group_by(marital_status) %>%
+  summarize(frequency = n()) %>%
+  arrange(desc(frequency)) %>%
+  mutate(
+    relative_frequency = frequency / sum(frequency),
+    relative_cumulative_frequency = cumsum(relative_frequency),
+    relative_frequency = round(100 * relative_frequency, 2),
+    relative_cumulative_frequency = round(
+      100 * relative_cumulative_frequency,
+      2
+    ), nr = row_number(-frequency)
+  )
+frequencies[[6]] <- data_collection %>%
+  group_by(clients_phone) %>%
+  summarize(frequency = n()) %>%
+  arrange(desc(frequency)) %>%
+  mutate(
+    relative_frequency = frequency / sum(frequency),
+    relative_cumulative_frequency = cumsum(relative_frequency),
+    relative_frequency = round(100 * relative_frequency, 2),
+    relative_cumulative_frequency = round(
+      100 * relative_cumulative_frequency,
+      2
+    ), nr = row_number(-frequency)
+  )
+frequencies[[7]] <- data_collection %>%
+  group_by(client_mobile) %>%
+  summarize(frequency = n()) %>%
+  arrange(desc(frequency)) %>%
+  mutate(
+    relative_frequency = frequency / sum(frequency),
+    relative_cumulative_frequency = cumsum(relative_frequency),
+    relative_frequency = round(100 * relative_frequency, 2),
+    relative_cumulative_frequency = round(
+      100 * relative_cumulative_frequency,
+      2
+    ), nr = row_number(-frequency)
+  )
+frequencies[[8]] <- data_collection %>%
+  group_by(client_email) %>%
+  summarize(frequency = n()) %>%
+  arrange(desc(frequency)) %>%
+  mutate(
+    relative_frequency = frequency / sum(frequency),
+    relative_cumulative_frequency = cumsum(relative_frequency),
+    relative_frequency = round(100 * relative_frequency, 2),
+    relative_cumulative_frequency = round(
+      100 * relative_cumulative_frequency,
+      2
+    ), nr = row_number(-frequency)
+  )
+frequencies[[9]] <- data_collection %>%
+  group_by(total_earnings) %>%
+  summarize(frequency = n()) %>%
+  arrange(desc(frequency)) %>%
+  mutate(
+    relative_frequency = frequency / sum(frequency),
+    relative_cumulative_frequency = cumsum(relative_frequency),
+    relative_frequency = round(100 * relative_frequency, 2),
+    relative_cumulative_frequency = round(
+      100 * relative_cumulative_frequency,
+      2
+    ), nr = row_number(-frequency)
+  )
+frequencies[[10]] <- data_collection %>%
+  group_by(living_area) %>%
+  summarize(frequency = n()) %>%
+  arrange(desc(frequency)) %>%
+  mutate(
+    relative_frequency = frequency / sum(frequency),
+    relative_cumulative_frequency = cumsum(relative_frequency),
+    relative_frequency = round(100 * relative_frequency, 2),
+    relative_cumulative_frequency = round(
+      100 * relative_cumulative_frequency,
+      2
+    ), nr = row_number(-frequency)
+  )
+frequencies[[11]] <- data_collection %>%
+  group_by(different_contact_area) %>%
+  summarize(frequency = n()) %>%
+  arrange(desc(frequency)) %>%
+  mutate(
+    relative_frequency = frequency / sum(frequency),
+    relative_cumulative_frequency = cumsum(relative_frequency),
+    relative_frequency = round(100 * relative_frequency, 2),
+    relative_cumulative_frequency = round(
+      100 * relative_cumulative_frequency,
+      2
+    ), nr = row_number(-frequency)
+  )
+frequencies[[12]] <- data_collection %>%
+  group_by(kc_flag) %>%
+  summarize(frequency = n()) %>%
+  arrange(desc(frequency)) %>%
+  mutate(
+    relative_frequency = frequency / sum(frequency),
+    relative_cumulative_frequency = cumsum(relative_frequency),
+    relative_frequency = round(100 * relative_frequency, 2),
+    relative_cumulative_frequency = round(
+      100 * relative_cumulative_frequency,
+      2
+    ), nr = row_number(-frequency)
+  )
+frequencies[[13]] <- data_collection %>%
+  group_by(kzmz_flag) %>%
+  summarize(frequency = n()) %>%
+  arrange(desc(frequency)) %>%
+  mutate(
+    relative_frequency = frequency / sum(frequency),
+    relative_cumulative_frequency = cumsum(relative_frequency),
+    relative_frequency = round(100 * relative_frequency, 2),
+    relative_cumulative_frequency = round(
+      100 * relative_cumulative_frequency,
+      2
+    ), nr = row_number(-frequency)
+  )
+
 # Check interesting coverage
 # most products are type 1
-ggplot(data = data_collection, aes(x = product_type)) +
+coverage <- list()
+
+coverage[[1]] <- ggplot(data = data_collection, aes(x = product_type)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
-table(data_collection$product_type)
 
 # most payment orders have discount
-ggplot(data = data_collection, aes(x = business_discount)) +
+coverage[[2]] <- ggplot(data = data_collection, aes(x = business_discount)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
-table(data_collection$business_discount)
 
 # contract status mostly 1, then 5,6,8,7 some 2,3,4...What does it mean??
-ggplot(data = data_collection, aes(x = contract_status)) +
+coverage[[3]] <- ggplot(data = data_collection, aes(x = contract_status)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
-table(data_collection$contract_status)
 
 # marital status mostly 3, some 4,2,6 5 and 1 mostly not...What does it mean?
-ggplot(data = data_collection, aes(x = marital_status)) +
+coverage[[4]] <- ggplot(data = data_collection, aes(x = marital_status)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
-table(data_collection$marital_status)
 
 # mostly 0 children, drops with number
 prop.table(table(data_collection$number_of_children))
@@ -232,42 +419,33 @@ prop.table(table(data_collection$number_of_children))
 prop.table(table(data_collection$number_other_product))
 
 # almost no email contact
-ggplot(data = data_collection, aes(x = client_email)) +
+coverage[[5]] <- ggplot(data = data_collection, aes(x = client_email)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
-table(data_collection$client_email)
 
 # total earning level mostly not declared
-ggplot(data = data_collection, aes(x = total_earnings)) +
+coverage[[6]] <- ggplot(data = data_collection, aes(x = total_earnings)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
-table(data_collection$total_earnings)
 
 # mostly not different contact area
-ggplot(data = data_collection, aes(x = different_contact_area)) +
+coverage[[7]] <- ggplot(data = data_collection, aes(x = different_contact_area)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
-table(data_collection$different_contact_area)
 
 # mostly false KC flag - mostly owns local citizenship
-ggplot(data = data_collection, aes(x = kc_flag)) +
+coverage[[8]] <- ggplot(data = data_collection, aes(x = kc_flag)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
-table(data_collection$kc_flag)
-
 
 # mostly false KZMZ flag  mostly did not fill employer
-ggplot(data = data_collection, aes(x = kzmz_flag)) +
+coverage[[9]] <- ggplot(data = data_collection, aes(x = kzmz_flag)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
-table(data_collection$kzmz_flag)
 
+coverage <- gridExtra::grid.arrange(grobs = coverage, ncol = 3)
 
-
-
-
-
-####### Generate test and train data ########
+####### Generate test and train data ##
 # fix random generator
 set.seed(2020)
 n_train <- round(0.08 * nrow)
@@ -281,9 +459,6 @@ summary(DTrain)
 summary(DTest)
 
 # Detailed summary of data
-install.packages("skimr")
-library(skimr)
-
 Dtrainskim <- skim(DTrain)
 Dtestskrim <- skim(DTest)
 
@@ -307,10 +482,12 @@ summary(DTest_new)
 
 # delete NAs in whole data source
 data_collection <- na.omit(data_collection)
+
+# Univariate analysis of numeric variables -------------------------------------
 ## Summary for each attribute
 headofTable <- c(
   "Num. of Children", "Num. Other Product", "Year of Birth",
-  "Due amount", "paid amount", "delay"
+  "Due amount", "Paid amount", "Delay"
 )
 EX <- c(
   mean(data_collection$number_of_children),
@@ -364,9 +541,262 @@ summaryData <- distinct(data.frame(headofTable, EX, VarX, Median, Q1, Q3, Min,
   check.rows = FALSE, check.names = FALSE
 ))
 
-############## exploring Data ########################
+# Density plots for numeric attributes and dates
+density_plots <- list()
 
-#### Data statistic ####
+density_plots[[1]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(contract_id)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_collection$contract_id),
+    color = "blue", linetype = "dashed", size = 1
+  ) +
+  labs(
+    title = "Distribution of contract_id",
+    x = "Contract ID",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+density_plots[[2]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(payment_order), colors = ) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_collection$payment_order, na.rm = TRUE),
+    color = "blue", linetype = "dashed", size = 1
+  ) +
+  labs(
+    title = "Distribution of payment_order",
+    x = "Payment order",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+density_plots[[3]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(number_of_children), colors = ) +
+  geom_bar() +
+  geom_vline(
+    xintercept = mean(data_collection$number_of_children),
+    color = "blue", linetype = "dashed", size = 1
+  ) +
+  labs(
+    title = "Histogram of number_of_children",
+    x = "Number of children",
+    y = "Count"
+  ) +
+  scale_x_continuous(breaks = seq(from = 0, to = 10, by = 1)) +
+  theme_minimal()
+
+density_plots[[4]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(number_other_product)) +
+  geom_bar() +
+  geom_vline(
+    xintercept = mean(data_collection$number_other_product),
+    color = "blue", linetype = "dashed", size = 1
+  ) +
+  labs(
+    title = "Histogram of number_other_product",
+    x = "Number of other products",
+    y = "Count"
+  ) +
+  scale_x_continuous(breaks = seq(from = 1, to = 13, by = 1)) +
+  theme_minimal()
+
+density_plots[[5]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(birth_year)) +
+  geom_bar() +
+  geom_vline(
+    xintercept = mean(data_collection$birth_year), color = "blue",
+    linetype = "dashed", size = 1
+  ) +
+  labs(
+    title = "Histogram of birth_year",
+    x = "Birth year",
+    y = "Count"
+  ) +
+  scale_x_continuous(breaks = seq(from = 1900, to = 2000, by = 10)) +
+  theme_minimal()
+
+density_plots[[6]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(birth_month)) +
+  geom_bar() +
+  geom_vline(
+    xintercept = mean(data_collection$birth_month), color = "blue",
+    linetype = "dashed", size = 1
+  ) +
+  labs(
+    title = "Histogram of birth_month",
+    x = "Birth month",
+    y = "Count"
+  ) +
+  scale_x_continuous(breaks = seq(from = 1, to = 12, by = 1)) +
+  theme_minimal()
+
+density_plots[[7]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(cf_val)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_collection$cf_val, na.rm = TRUE), color = "blue",
+    linetype = "dashed", size = 1
+  ) +
+  labs(
+    title = "Distribution of cf_val",
+    x = "CF value",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+density_plots[[8]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(due_amount)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_collection$due_amount), color = "blue",
+    linetype = "dashed", size = 1
+  ) +
+  labs(
+    title = "Distribution of due_amount",
+    x = "Due amount",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+density_plots[[9]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(paid_amount)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_collection$paid_amount), color = "blue",
+    linetype = "dashed", size = 1
+  ) +
+  labs(
+    title = "Distribution of paid amount",
+    x = "Paid amount",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+density_plots[[10]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(delay)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_collection$delay, na.rm = TRUE),
+    color = "blue",
+    linetype = "dashed", size = 1
+  ) +
+  labs(
+    title = "Distribution of delay",
+    x = "Delay",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+density_plots[[11]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(due_date)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_collection$due_date),
+    color = "blue", linetype = "dashed", size = 1
+  ) +
+  labs(
+    title = "Distribution of due_date",
+    x = "Due date",
+    y = "Count"
+  ) +
+  scale_x_date(date_labels = "%Y") +
+  theme_minimal()
+
+density_plots[[12]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(payment_date)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_collection$payment_date, na.rm = T),
+    color = "blue", linetype = "dashed", size = 1
+  ) +
+  labs(
+    title = "Distribution of payment_date",
+    x = "Payment date",
+    y = "Count"
+  ) +
+  scale_x_date(date_labels = "%Y") +
+  theme_minimal()
+
+# Plot distribution for each numeric attribute
+density_plots <- gridExtra::grid.arrange(grobs = density_plots, ncol = 2)
+
+#  Boxplots for numeric attributes
+boxplots <- list()
+boxplots[[1]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = number_of_children)) +
+  scale_x_discrete() +
+  labs(title = "Number of children")
+
+boxplots[[2]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = number_other_product)) +
+  scale_x_discrete() +
+  labs(title = "Number other product")
+
+boxplots[[3]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = birth_year)) +
+  scale_x_discrete() +
+  labs(title = "Birth year")
+
+boxplots[[4]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = birth_month)) +
+  scale_x_discrete() +
+  labs(title = "Birth year")
+
+boxplots[[5]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = cf_val)) +
+  scale_x_discrete() +
+  labs(title = "CF value")
+
+boxplots[[6]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = due_amount)) +
+  labs(title = "Due amount")
+
+boxplots[[7]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = paid_amount)) +
+  labs(title = "Paid amount")
+
+boxplots[[8]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = delay)) +
+  scale_x_discrete() +
+  labs(title = "Delay")
+
+# Plot boxplot for each numeric attribute
+boxplots <- gridExtra::grid.arrange(grobs = boxplots, ncol = 4)
+
+# Bivariate analysis of continuous variables wrt categorical variables ---------
+############## exploring Data #
+
+#### Data statistic #
 # Statistical dependence of delay on gender
 meanG_D <- data_collection %>%
   group_by(gender) %>%
@@ -399,6 +829,17 @@ data_GD <- data.frame(meanG_D, medG_D[, 2], minG_D[, 2], maxG_D[, 2],
   check.names = FALSE
 )
 
+data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(gender, delay)) +
+  labs(
+    title = "Statistical dependence of delay on gender",
+    x = "Gender",
+    y = "Delay"
+  ) +
+  theme_minimal()
+
 # Statistical dependence of paid amount on gender
 meanG_PA <- data_collection %>%
   group_by(gender) %>%
@@ -429,6 +870,17 @@ data_GPA <- data.frame(meanG_PA, medG_PA[, 2], minG_PA[, 2], maxG_PA[, 2],
   check.names = FALSE
 )
 
+data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(gender, paid_amount)) +
+  labs(
+    title = "Statistical dependence of paid amount on gender",
+    x = "Gender",
+    y = "Paid amount"
+  ) +
+  theme_minimal()
+
 # Statistical dependence of due amount on gender
 meanG_DA <- data_collection %>%
   group_by(gender) %>%
@@ -458,6 +910,18 @@ data_GDA <- data.frame(meanG_DA, medG_DA[, 2], minG_DA[, 2], maxG_DA[, 2],
   Q1G_DA[, 2], Q3G_DA[, 2],
   check.names = FALSE
 )
+
+data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(gender, due_amount)) +
+  labs(
+    title = "Statistical dependence of due amount on gender",
+    x = "Gender",
+    y = "Due amount"
+  ) +
+  theme_minimal()
+
 # Dependence of paid amount on gender, product type and business discount
 data_collection %>%
   group_by(gender, product_type, business_discount) %>%
@@ -469,110 +933,15 @@ data_collection %>%
   summarise(delay = mean(delay)) %>%
   spread(gender, delay)
 
-# Density plots for numeric attributes
-par(mfrow = c(2, 4))
 data_collection %>%
   drop_na() %>%
-  ggplot(aes(number_of_children), colors = ) +
-  geom_density() +
-  geom_vline(xintercept = mean(data_collection$number_of_children), 
-             color = "blue", linetype = "dashed", size = 1) +
+  ggplot() +
+  geom_boxplot(aes(gender, paid_amount, color = product_type)) +
+  facet_grid(~business_discount) +
   labs(
-    title = "Histogram of number_of_children",
-    x = "Number of children",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-data_collection %>%
-  drop_na() %>%
-  ggplot(aes(number_other_product)) +
-  geom_density() +
-  geom_vline(xintercept = mean(data_collection$number_other_product), 
-             color = "blue", linetype = "dashed", size = 1) +
-  labs(
-    title = "Histogram of number_other_product",
-    x = "Number of other products",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-data_collection %>%
-  drop_na() %>%
-  ggplot(aes(birth_year)) +
-  geom_density() +
-  geom_vline(xintercept = mean(data_collection$birth_year), color = "blue", 
-             linetype = "dashed", size = 1) +
-  labs(
-    title = "Histogram of birth_year",
-    x = "Birth year",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-data_collection %>%
-  drop_na() %>%
-  ggplot(aes(birth_month)) +
-  geom_density() +
-  geom_vline(xintercept = mean(data_collection$birth_month), color = "blue", 
-             linetype = "dashed", size = 1) +
-  labs(
-    title = "Histogram of birth_month",
-    x = "Birth month",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-data_collection %>%
-  drop_na() %>%
-  ggplot(aes(cf_val)) +
-  geom_density() +
-  geom_vline(xintercept = mean(data_collection$cf_val), color = "blue", 
-             linetype = "dashed", size = 1) +
-  labs(
-    title = "Histogram of cf_val",
-    x = "CF value",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-data_collection %>%
-  drop_na() %>%
-  ggplot(aes(cf_val)) +
-  geom_density() +
-  geom_vline(xintercept = mean(data_collection$due_amount), color = "blue", 
-             linetype = "dashed", size = 1) +
-  labs(
-    title = "Histogram of due_amount",
-    x = "Due amount",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-data_collection %>%
-  drop_na() %>%
-  ggplot(aes(paid_amount)) +
-  geom_density() +
-  geom_vline(xintercept = mean(data_collection$paid_amount), color = "blue", 
-             linetype = "dashed", size = 1) +
-  labs(
-    title = "Histogram of paid amount",
-    x = "Paid amount",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-data_collection %>%
-  drop_na() %>%
-  ggplot(aes(delay)) +
-  geom_density() +
-  geom_vline(xintercept = mean(data_collection$delay, na.rm = TRUE), 
-             color = "blue", 
-             linetype = "dashed", size = 1) +
-  labs(
-    title = "Histogram of delay",
-    x = "Delay",
-    y = "Count"
+    title = "Statistical dependence of paid amount on gender, product type and business discount",
+    x = "Gender",
+    y = "Paid amount"
   ) +
   theme_minimal()
 
@@ -581,8 +950,10 @@ data_collection %>%
   drop_na() %>%
   ggplot(aes(paid_amount, color = total_earnings)) +
   geom_density() +
-  geom_vline(xintercept = mean(data_collection$paid_amount), 
-             linetype = "dashed", size = 1) +
+  geom_vline(
+    xintercept = mean(data_collection$paid_amount),
+    linetype = "dashed", size = 1
+  ) +
   labs(
     title = "Histogram of paid amount by total earnings",
     x = "Paid amount",
@@ -593,11 +964,15 @@ data_collection %>%
 # Boxplot of paid amount according to product type
 data_collection %>%
   drop_na() %>%
-  ggplot(aes(x = product_type, y = paid_amount, 
-             color = product_type)) +
+  ggplot(aes(
+    x = product_type, y = paid_amount,
+    color = product_type
+  )) +
   geom_boxplot() +
-  geom_hline(yintercept = mean(data_collection$paid_amount, na.rm = TRUE), 
-             linetype = "dashed", size = 1) +
+  geom_hline(
+    yintercept = mean(data_collection$paid_amount, na.rm = TRUE),
+    linetype = "dashed", size = 1
+  ) +
   labs(
     title = "Boxplot of paid amount",
     x = "Product type",
@@ -609,9 +984,12 @@ data_collection %>%
 data_collection %>%
   drop_na() %>%
   ggplot(aes(due_amount, color = contract_status)) +
-  geom_density() + facet_grid(contract_status ~ .) +
-  geom_vline(xintercept = mean(data_collection$due_amount, na.rm = TRUE), 
-             linetype = "dashed", size = 1) +
+  geom_density() +
+  facet_grid(contract_status ~ .) +
+  geom_vline(
+    xintercept = mean(data_collection$due_amount, na.rm = TRUE),
+    linetype = "dashed", size = 1
+  ) +
   labs(
     title = "Histogram of due amount by contract status",
     x = "Due amount",
