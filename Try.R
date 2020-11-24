@@ -1064,7 +1064,7 @@ data_collection %>%
     linetype = "dashed", size = 1
   ) +
   labs(
-    title = "Boxplot of paid amount",
+    title = "Paid amount by product type",
     x = "Product type",
     y = "Paid amount"
   ) +
@@ -1087,8 +1087,6 @@ data_collection %>%
   ) +
   theme_minimal()
 
-
-
 # Verify data quality ==========================================================
 
 # Are there missing values in the data? If so, how are they represented, where
@@ -1109,6 +1107,15 @@ data_collection %>%
 # what with NAs in payment order
 # to do payment order id!!
 
+sum(is.na(data_collection$different_contact_area) == T &
+      is.na(data_collection$cf_val) == T &
+      is.na(data_collection$living_area) == T & 
+      is.na(data_collection$kc_flag) == T)
+
+sum(is.na(data_collection$kc_flag) == T)
+
+# Zaver: ze ctyr promennych s nejvice NA zaznamy je vetsina NA pozorovani
+# na stejnych radcich, to muze indikovat "missing not at random".
 
 
 # Check for plausibility of values
@@ -1120,48 +1127,158 @@ for (i in c(1:ncol)) {
   }
 }
 
-
-
-
-####### Generate test and train data ##
-# fix random generator
-set.seed(2020)
-n_train <- round(0.08 * nrow)
-index_train <- sample(1:nrow, n_train)
-
-DTrain <- data_collection[index_train, ]
-DTest <- data_collection[-index_train, ]
-
-# Summary to find if data have NAs
-summary(DTrain)
-summary(DTest)
-
-# Detailed summary of data
-Dtrainskim <- skim(DTrain)
-Dtestskrim <- skim(DTest)
-
-## See all NAs for all dataset
-skim(DTrain)
-skim(DTest)
-
-## Create a new data set without NAs
-DTrain_new <- na.omit(DTrain)
-DTest_new <- na.omit(DTest)
-
-
-
-# Number of column and row and summary in data train w-o NAs
-dim(DTrain_new) # number of columns and rows for clean data Train
-summary(DTrain_new)
-
-# Number of column and row and summary in data test w-o NAs
-dim(DTest_new) # number of columns and rows for clean data Test
-summary(DTest_new)
-
-# delete NAs in whole data source
-data_collection <- na.omit(data_collection)
-
 # Data preparation -------------------------------------------------------------
 # Clean the data - estimation of missing data
 
-# Create derived attributes
+# Feature engineering ==========================================================
+# This function takes a vector and shifts its values by 1. This means that 
+#   on the second position is the first value, on the third position is 
+#   the second value etc. This is necessary for feature engineering. 
+#   We want a cumulative sum/cumulative mean for previous payments, but 
+#   functions cummean/cumsum applied to a row[i] make the calculations using
+#   also the number on this line. This is where this function comes in handy.
+f_vec_shift <- function(x){
+  new_vec <- c(0, x[1:length(x)-1])
+  return(new_vec)
+}
+
+# Creating new features: was the delay larger than 21(140) days? 
+data_collection <- data_collection %>%
+  mutate(delay_21_y = ifelse(delay > 21, 1, 0)) %>%
+  mutate(delay_140_y = ifelse(delay > 140, 1, 0))
+
+# Creating new features: mean delay for the whole client's history
+data_collection <- data_collection %>%
+  nest(-contract_id) %>%
+  mutate(delay_indiv_help = map(.x = data, .f = ~cummean(.x$delay))) %>%
+  mutate(delay_indiv = map(.x = delay_indiv_help, .f = ~f_vec_shift(.x))) %>%
+  select(-delay_indiv_help) %>%
+  unnest(c(data, delay_indiv))
+
+# Creating new features: number of delays larger than 21(140) days
+# for the whole client's history. 
+data_collection <- data_collection %>%
+  nest(-contract_id) %>%
+  mutate(delay_indiv_21_help = map(.x = data, .f = ~cumsum(.x$delay_21_y))) %>%
+  mutate(delay_indiv_21 = map(.x = delay_indiv_21_help, .f = ~f_vec_shift(.x))) %>%
+  mutate(delay_indiv_140_help = map(.x = data, .f = ~cumsum(.x$delay_140_y))) %>%
+  mutate(delay_indiv_140 = map(.x = delay_indiv_140_help, .f = ~f_vec_shift(.x))) %>%
+  select(-delay_indiv_21_help, -delay_indiv_140_help) %>%
+  unnest(c(data, delay_indiv_21, delay_indiv_140))
+
+# This part of the feature engineering process is the longest, but the syntax
+# is not that complicated (compared to map/nest etc.).
+# It works like this: 
+# First, we create new features (variables, columns) for storing 
+# the average payment delay for last 12/6/3/1 month.
+# In this section, I am also creating a set of new features with suffix _help, 
+# they serve only as a temporary helper. 
+
+# It was necessasry rep() NA values, since 0 or any other number
+# would be misleading. 
+data_collection <- data_collection %>%
+  mutate(mean_delay_12m = rep(NA, nrow(data_collection))) %>% 
+  mutate(mean_delay_12m_help = rep(NA, nrow(data_collection))) %>%
+  mutate(mean_delay_6m = rep(NA, nrow(data_collection))) %>% 
+  mutate(mean_delay_6m_help = rep(NA, nrow(data_collection))) %>%
+  mutate(mean_delay_3m = rep(NA, nrow(data_collection))) %>% 
+  mutate(mean_delay_3m_help = rep(NA, nrow(data_collection))) %>%
+  mutate(mean_delay_1m = rep(NA, nrow(data_collection))) %>% 
+  mutate(mean_delay_1m_help = rep(NA, nrow(data_collection))) %>%
+  filter(is.na(payment_order) == F) %>% # POZOR, OVERIT!!!!!!!! 
+  filter(is.na(delay) == F) # POZOR, OVERIT!!!!!!!!
+
+# Second we nest data again
+data_collection <- data_collection %>%
+  nest(-contract_id) 
+
+# And third, we loop through the data. A lot. 
+# The first loop loops through the nested data for each contract. 
+# The purpose of this main loop is similar to map() function. 
+# Maybe the inner loop could be written as a function and passed to
+# map() in .f argument, but not sure how big the runtime gains would be. 
+for(i in 1:nrow(data_collection)){
+  df_actual <- data_collection$data[[i]]
+  
+  # The second loop loops through the dataframe for each contract. 
+  # There are 4 if conditions in this for loop -> 12/6/3/1 M delay.
+  # The logic is this: 
+  # The algorithm identifies rows with due_date in the given date range, which
+  # means last 12/6/3/1 months. These rows are marked with 1 in the _help column. 
+  # Then, the average is calculated simply by multiplying delay column by 
+  # _help column and divided by the sum of _help. This works because the 
+  # _help column has only zeroes and ones. 
+  # Lastly, the _help columned is restarted for the next round. 
+  for(j in 1:nrow(df_actual)){
+    
+    # Mean for the last 12 months
+    if(j > 12){
+      # Mark relevant rows with 1
+      df_actual <- df_actual %>%
+        mutate(mean_delay_12m_help = ifelse(due_date >= df_actual$due_date[j] - months(12) &
+                                              due_date < df_actual$due_date[j], 1, 0))
+      
+      # Calculate mean
+      df_actual$mean_delay_12m[j] <-sum(df_actual$mean_delay_12m_help*df_actual$delay)/sum(df_actual$mean_delay_12m_help) 
+      # Restart helper column
+      df_actual$mean_delay_12m_help = rep(NA, nrow(df_actual))
+    }
+    
+    # Mean for the last 6 months
+    if(j > 6){
+      # Mark relevant rows with 1 
+      df_actual <- df_actual %>%
+        mutate(mean_delay_6m_help = ifelse(due_date >= df_actual$due_date[j] - months(6) &
+                                             due_date < df_actual$due_date[j], 1, 0))
+      
+      # Calculate mean
+      df_actual$mean_delay_6m[j] <-sum(df_actual$mean_delay_6m_help*df_actual$delay)/sum(df_actual$mean_delay_6m_help) 
+      # Restart helper column
+      df_actual$mean_delay_6m_help = rep(NA, nrow(df_actual))
+    }
+    
+    # Mean for the last 3 months
+    if(j > 3){
+      # Mark relevant rows with 1 
+      df_actual <- df_actual %>%
+        mutate(mean_delay_3m_help = ifelse(due_date >= df_actual$due_date[j] - months(3) &
+                                             due_date < df_actual$due_date[j], 1, 0))
+      
+      # Calculate mean
+      df_actual$mean_delay_3m[j] <-sum(df_actual$mean_delay_3m_help*df_actual$delay)/sum(df_actual$mean_delay_3m_help) 
+      # Restart helper column
+      df_actual$mean_delay_3m_help = rep(NA, nrow(df_actual))
+    }
+    
+    # Mean for the last 1 month
+    if(j > 1){
+      # Mark relevant rows with 1
+      df_actual <- df_actual %>%
+        mutate(mean_delay_1m_help = ifelse(due_date >= df_actual$due_date[j] - months(1) &
+                                             due_date < df_actual$due_date[j], 1, 0))
+      
+      # Calculate mean
+      df_actual$mean_delay_1m[j] <-sum(df_actual$mean_delay_1m_help*df_actual$delay)/sum(df_actual$mean_delay_1m_help) 
+      # Restart helper column
+      df_actual$mean_delay_1m_help = rep(NA, nrow(df_actual))
+    }
+    
+  }
+  data_collection$data[[i]] <- df_actual 
+  
+  # Progress bar might be more elegant, someone can add later 
+  # There is 86 980 observations to loop through, so printing [i] gives a good idea of progress. 
+  print(i)
+}
+
+# Unnest the data
+# Remove helper columns
+data_collection <- data_collection %>%
+  unnest(-data) %>%
+  select(-mean_delay_12m_help, -mean_delay_6m_help, -mean_delay_3m_help, -mean_delay_1m_help)
+
+
+# Write data to .txt for the model creation
+write.table(data_collection, file = "data_collection_prepared.txt", sep = ";")
+
+
