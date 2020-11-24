@@ -7,7 +7,8 @@ if (!require(naniar)) install.packages("naniar")
 if (!require(styler)) install.packages("styler")
 if (!require(GGally)) install.packages("GGally")
 if (!require(skimr)) install.packages("skimr")
-if (!require(skimr)) install.packages("ggcorrplot")
+if (!require(ggcorrplot)) install.packages("ggcorrplot")
+if (!require(gridExtra)) installed.packages("gridExtra")
 
 library(tidyverse)
 library(naniar)
@@ -15,8 +16,10 @@ library(styler)
 library(GGally)
 library(skimr)
 library(ggcorrplot)
+library(gridExtra)
 
-### Load the initial data ------------------------------------------------------
+
+# Load the initial data --------------------------------------------------------
 
 # Put data files outside of the git folder in order to avoid pushing too large
 # files to repository
@@ -26,10 +29,9 @@ path_to_data <- "D:/01 Skola VSE Statistika/DataX/zaverecny projekt/payment_date
 
 data_collection <- read.csv(path_to_data)
 
-### Data understanding ---------------------------------------------------------
+# Data understanding -----------------------------------------------------------
 
-## Data description ------------------------------------------------------------
-
+# Data description =============================================================
 # Data volume (number of rows and columns)
 nrow <- nrow(data_collection)
 ncol <- ncol(data_collection)
@@ -91,7 +93,11 @@ data_collection <- data_collection %>%
 # Display the internal structure of the data
 str(data_collection)
 
-# Analyze correlations between variables ---------------------------------------
+# Summary statistics of the data
+summary <- summary(data_collection)
+detailed_statistics <- skim(data_collection)
+
+# Analyze correlations between variables #######################################
 # Compute a matrix of correlation p-values and plot the correlation matrix
 p.mat <- data_collection %>%
   select_if(is.numeric) %>%
@@ -177,48 +183,448 @@ data_collection %>%
   ggplot(aes(data_collection[, 5])) +
   geom_bar(aes(fill = data_collection[, 6]), positon = "fill")
 
+# Univariate analysis of numeric variables #####################################
+# Summary for each attribute
+headofTable <- c(
+  "Num. of Children", "Num. Other Product", "Year of Birth",
+  "Due amount", "Paid amount", "Delay"
+)
+EX <- c(
+  mean(data_collection$number_of_children),
+  mean(data_collection$number_other_product), mean(data_collection$birth_year),
+  mean(data_collection$due_amount), mean(data_collection$paid_amount),
+  mean(data_collection$delay)
+)
+VarX <- c(
+  var(data_collection$number_of_children),
+  var(data_collection$number_other_product), var(data_collection$birth_year),
+  var(data_collection$due_amount), var(data_collection$paid_amount),
+  var(data_collection$delay)
+)
+Median <- c(
+  median(data_collection$number_of_children),
+  median(data_collection$number_other_product),
+  median(data_collection$birth_year), median(data_collection$due_amount),
+  median(data_collection$paid_amount), median(data_collection$delay)
+)
+Q1 <- c(
+  quantile(data_collection$number_of_children, probs = 1 / 4),
+  quantile(data_collection$number_other_product, probs = 1 / 4),
+  quantile(data_collection$birth_year, probs = 1 / 4),
+  quantile(data_collection$due_amount, probs = 1 / 4),
+  quantile(data_collection$paid_amount, probs = 1 / 4),
+  quantile(data_collection$delay, probs = 1 / 4)
+)
+Q3 <- c(
+  quantile(data_collection$number_of_children, probs = c(3 / 4)),
+  quantile(data_collection$number_other_product, probs = c(3 / 4)),
+  quantile(data_collection$birth_year, probs = c(3 / 4)),
+  quantile(data_collection$due_amount, probs = c(3 / 4)),
+  quantile(data_collection$paid_amount, probs = c(3 / 4)),
+  quantile(data_collection$delay, probs = 3 / 4)
+)
+Min <- c(
+  min(data_collection$number_of_children),
+  min(data_collection$number_other_product),
+  min(data_collection$birth_year), min(data_collection$due_amount),
+  min(data_collection$paid_amount), min(data_collection$delay)
+)
+Max <- c(
+  max(data_collection$number_of_children),
+  max(data_collection$number_other_product), max(data_collection$birth_year),
+  max(data_collection$due_amount), max(data_collection$paid_amount),
+  max(data_collection$delay)
+)
 
+summaryData <- distinct(data.frame(headofTable, EX, VarX, Median, Q1, Q3, Min,
+  Max,
+  check.rows = FALSE, check.names = FALSE
+))
 
-# Data exploration--------------------------------------------------------------
+# Density plots for numeric attributes and dates
+density_plots <- list()
 
-# Summary statistics of the data
-# Check attribute value ranges, coverage, NAs occurence
-summary <- summary(data_collection)
-print(summary)
-detailed_statistics <- skim(data_collection)
-print(detailed_statistics)
+density_plots[[1]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_bar(aes(contract_id), fill = "grey70") +
+  geom_vline(
+    xintercept = mean(data_collection$contract_id),
+    color = "blue", linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_collection$contract_id),
+    color = "red", linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of contract_id",
+    x = "Contract ID",
+    y = "Count"
+  ) +
+  annotate(
+    geom = "text", x = mean(data_collection$contract_id),
+    y = 25, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_collection$contract_id),
+    y = 75, label = "median", color = "red"
+  ) +
+  theme_minimal()
 
-# Verify data quality ----------------------------------------------------------
+density_plots[[2]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(payment_order)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_collection$payment_order, na.rm = TRUE),
+    color = "blue", linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_collection$payment_order, na.rm = T),
+    color = "red", linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of payment_order",
+    x = "Payment order",
+    y = "Count"
+  ) +
+  annotate(
+    geom = "text", x = mean(data_collection$payment_order, na.rm = T),
+    y = 0.01, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_collection$payment_order, na.rm = T),
+    y = 0.03, label = "median", color = "red"
+  ) +
+  theme_minimal()
 
-# Are there missing values in the data? If so, how are they represented, where
-# do they occur, and how common are they?
+density_plots[[3]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(number_of_children)) +
+  geom_bar(fill = "grey70") +
+  geom_vline(
+    xintercept = mean(data_collection$number_of_children),
+    color = "blue", linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_collection$number_of_children),
+    color = "red", linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of number_of_children",
+    x = "Number of children",
+    y = "Count"
+  ) +
+  scale_x_continuous(breaks = seq(from = 0, to = 10, by = 1)) +
+  annotate(
+    geom = "text", x = mean(data_collection$number_of_children),
+    y = 500000, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_collection$number_of_children),
+    y = 1000000, label = "median", color = "red"
+  ) +
+  theme_minimal()
 
-variables_miss <- miss_var_summary(data_collection)
-print(variables_miss)
-# different_contract_area missing 20%, cf_val living_area kc_flag missing 19,9%
-# 1173 payment date missing, not yet paid
-gg_miss_var(data_collection)
+density_plots[[4]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(number_other_product)) +
+  geom_bar(fill = "grey70") +
+  geom_vline(
+    xintercept = mean(data_collection$number_other_product),
+    color = "blue", linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_collection$number_other_product),
+    color = "red", linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of number_other_product",
+    x = "Number other products",
+    y = "Count"
+  ) +
+  scale_x_continuous(breaks = seq(from = 1, to = 13, by = 1)) +
+  annotate(
+    geom = "text", x = mean(data_collection$number_other_product),
+    y = 250000, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_collection$number_other_product),
+    y = 600000, label = "median", color = "red"
+  ) +
+  theme_minimal()
 
-# more characteristics missing at the same time
-data_collection %>%
-  gg_miss_var(facet = total_earnings)
+density_plots[[5]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(birth_year)) +
+  geom_bar(fill = "grey70") +
+  geom_vline(
+    xintercept = mean(data_collection$birth_year), color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of birth_year",
+    x = "Birth year",
+    y = "Count"
+  ) +
+  scale_x_discrete(breaks = seq(from = 1920, to = 2000, by = 10)) +
+  annotate(
+    geom = "text", x = mean(data_collection$birth_year),
+    y = 20000, label = "mean = median", color = "blue"
+  ) +
+  theme_minimal()
 
-# what with NAs in payment order
-# to do payment order id!!
+density_plots[[6]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(birth_month)) +
+  geom_bar(fill = "grey70") +
+  geom_vline(
+    xintercept = mean(data_collection$birth_month), color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_collection$birth_month), color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of birth_month",
+    x = "Birth month",
+    y = "Count"
+  ) +
+  scale_x_discrete(breaks = seq(from = 1, to = 12, by = 1)) +
+  annotate(
+    geom = "text", x = mean(data_collection$birth_month),
+    y = 100000, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_collection$birth_month),
+    y = 50000, label = "median", color = "red"
+  ) +
+  theme_minimal()
 
+density_plots[[7]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(cf_val)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_collection$cf_val, na.rm = TRUE), color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of cf_val",
+    x = "CF value",
+    y = "Count"
+  ) +
+  annotate(
+    geom = "text", x = median(data_collection$cf_val, na.rm = TRUE),
+    y = 1, label = "median = mean", color = "red"
+  ) +
+  theme_minimal()
 
+density_plots[[8]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(due_amount)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_collection$due_amount), color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_collection$due_amount), color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of due_amount",
+    x = "Due amount",
+    y = "Count"
+  ) +
+  annotate(
+    geom = "text", x = mean(data_collection$due_amount),
+    y = 0.0001, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_collection$due_amount),
+    y = 0.0003, label = "median", color = "red"
+  ) +
+  theme_minimal()
 
-# Check for plausibility of values
-for (i in c(1:ncol)) {
-  if (is.factor(data_collection[, i])) {
-    print(colnames(data_collection[i]))
-    print(prop.table(table(data_collection[, i])))
-    cat(sep = "\n\n")
-  }
-}
+density_plots[[9]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(paid_amount)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_collection$paid_amount), color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_collection$paid_amount), color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of paid amount",
+    x = "Paid amount",
+    y = "Count"
+  ) +
+  annotate(
+    geom = "text", x = mean(data_collection$paid_amount),
+    y = 0.0002, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_collection$paid_amount),
+    y = 0.0004, label = "median", color = "red"
+  ) +
+  theme_minimal()
 
-# Univariate analysis of categorical variables ---------------------------------
+density_plots[[10]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(delay)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_collection$delay, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_collection$delay, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of delay",
+    x = "Delay",
+    y = "Count"
+  ) +
+  annotate(
+    geom = "text", x = mean(data_collection$delay, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_collection$delay, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  theme_minimal()
+
+density_plots[[11]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(due_date)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_collection$due_date),
+    color = "blue", linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_collection$due_date),
+    color = "red", linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of due_date",
+    x = "Due date",
+    y = "Count"
+  ) +
+  scale_x_date(date_labels = "%Y") +
+  annotate(
+    geom = "text", x = mean(data_collection$due_date),
+    y = 0.0003, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_collection$due_date),
+    y = 0.0006, label = "median", color = "red"
+  ) +
+  theme_minimal()
+
+density_plots[[12]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(payment_date)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_collection$payment_date, na.rm = T),
+    color = "blue", linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_collection$payment_date, na.rm = T),
+    color = "red", linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of payment_date",
+    x = "Payment date",
+    y = "Count"
+  ) +
+  scale_x_date(date_labels = "%Y") +
+  annotate(
+    geom = "text", x = mean(data_collection$payment_date, na.rm = T),
+    y = 0.0006, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_collection$payment_date, na.rm = T),
+    y = 0.0003, label = "median", color = "red"
+  ) +
+  theme_minimal()
+
+# Plot distribution for each numeric attribute
+density_plots <- grid.arrange(grobs = density_plots, ncol = 2)
+
+#  Boxplots for numeric attributes
+boxplots <- list()
+boxplots[[1]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = number_of_children)) +
+  scale_x_discrete() +
+  labs(title = "Number of children")
+
+boxplots[[2]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = number_other_product)) +
+  scale_x_discrete() +
+  labs(title = "Number other product")
+
+boxplots[[3]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = birth_year)) +
+  scale_x_discrete() +
+  labs(title = "Birth year")
+
+boxplots[[4]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = birth_month)) +
+  scale_x_discrete() +
+  labs(title = "Birth year")
+
+boxplots[[5]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = cf_val)) +
+  scale_x_discrete() +
+  labs(title = "CF value")
+
+boxplots[[6]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = due_amount)) +
+  labs(title = "Due amount")
+
+boxplots[[7]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = paid_amount)) +
+  labs(title = "Paid amount")
+
+boxplots[[8]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = delay)) +
+  scale_x_discrete() +
+  labs(title = "Delay")
+
+# Plot boxplot for each numeric attribute
+boxplots <- grid.arrange(grobs = boxplots, ncol = 4)
+
+# Univariate analysis of categorical variables #################################
 frequencies <- list()
+
 frequencies[[1]] <- data_collection %>%
   group_by(product_type) %>%
   summarize(frequency = n()) %>%
@@ -389,6 +795,14 @@ frequencies[[13]] <- data_collection %>%
     ), nr = row_number(-frequency)
   )
 
+# Data exploration =============================================================
+# How much due amount equals to paid amount (check if cause of correlation)
+n <- data_collection %>%
+  group_by(contract_id) %>%
+  summarise(result = sum(data_collection$due_amount == data_collection$paid_amount)/nrow)
+
+
+
 # Check interesting coverage
 # most products are type 1
 coverage <- list()
@@ -397,18 +811,22 @@ coverage[[1]] <- ggplot(data = data_collection, aes(x = product_type)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
 
-# most payment orders have discount
-coverage[[2]] <- ggplot(data = data_collection, aes(x = business_discount)) +
+# contract status mostly 1, then 5,6,8,7 some 2,3,4...What does it mean??
+coverage[[2]] <- ggplot(data = data_collection, aes(x = contract_status)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
 
-# contract status mostly 1, then 5,6,8,7 some 2,3,4...What does it mean??
-coverage[[3]] <- ggplot(data = data_collection, aes(x = contract_status)) +
+# most payment orders have discount
+coverage[[3]] <- ggplot(data = data_collection, aes(x = business_discount)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1))
+
+coverage[[4]] <- ggplot(data = data_collection, aes(x = gender)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
 
 # marital status mostly 3, some 4,2,6 5 and 1 mostly not...What does it mean?
-coverage[[4]] <- ggplot(data = data_collection, aes(x = marital_status)) +
+coverage[[5]] <- ggplot(data = data_collection, aes(x = marital_status)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
 
@@ -418,385 +836,57 @@ prop.table(table(data_collection$number_of_children))
 #  mostly 1 other product, drops with number
 prop.table(table(data_collection$number_other_product))
 
+coverage[[6]] <- ggplot(data = data_collection, aes(x = clients_phone)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1))
+
+coverage[[7]] <- ggplot(data = data_collection, aes(x = client_mobile)) +
+  geom_bar() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1))
+
 # almost no email contact
-coverage[[5]] <- ggplot(data = data_collection, aes(x = client_email)) +
+coverage[[8]] <- ggplot(data = data_collection, aes(x = client_email)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
 
 # total earning level mostly not declared
-coverage[[6]] <- ggplot(data = data_collection, aes(x = total_earnings)) +
+coverage[[9]] <- ggplot(data = data_collection, aes(x = total_earnings)) +
   geom_bar() +
-  theme(axis.text.x = element_text(angle = 0, hjust = 1))
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 0, hjust = 1)) +
+  coord_flip()
+
+coverage[[10]] <- data_collection %>%
+  group_by(living_area) %>%
+  summarize(frequency = n()) %>%
+  arrange(desc(frequency)) %>%
+  mutate(
+    relative_frequency = frequency / sum(frequency),
+    relative_frequency = round(100 * relative_frequency, 2)
+    ) %>%
+  head() %>%
+  as.data.frame() %>%
+  tableGrob(theme = ttheme_default(base_size = 8, padding = unit(c(2,2), "mm")))
 
 # mostly not different contact area
-coverage[[7]] <- ggplot(data = data_collection, aes(x = different_contact_area)) +
+coverage[[11]] <- ggplot(data = data_collection, aes(x = different_contact_area)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
 
 # mostly false KC flag - mostly owns local citizenship
-coverage[[8]] <- ggplot(data = data_collection, aes(x = kc_flag)) +
+coverage[[12]] <- ggplot(data = data_collection, aes(x = kc_flag)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
 
 # mostly false KZMZ flag  mostly did not fill employer
-coverage[[9]] <- ggplot(data = data_collection, aes(x = kzmz_flag)) +
+coverage[[13]] <- ggplot(data = data_collection, aes(x = kzmz_flag)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
 
-coverage <- gridExtra::grid.arrange(grobs = coverage, ncol = 3)
+coverage <- grid.arrange(grobs = coverage, ncol = 3)
 
-####### Generate test and train data ##
-# fix random generator
-set.seed(2020)
-n_train <- round(0.08 * nrow)
-index_train <- sample(1:nrow, n_train)
+# Bivariate analysis of continuous variables wrt categorical variables #########
 
-DTrain <- data_collection[index_train, ]
-DTest <- data_collection[-index_train, ]
-
-# Summary to find if data have NAs
-summary(DTrain)
-summary(DTest)
-
-# Detailed summary of data
-Dtrainskim <- skim(DTrain)
-Dtestskrim <- skim(DTest)
-
-## See all NAs for all dataset
-skim(DTrain)
-skim(DTest)
-
-## Create a new data set without NAs
-DTrain_new <- na.omit(DTrain)
-DTest_new <- na.omit(DTest)
-
-
-
-# Number of column and row and summary in data train w-o NAs
-dim(DTrain_new) # number of columns and rows for clean data Train
-summary(DTrain_new)
-
-# Number of column and row and summary in data test w-o NAs
-dim(DTest_new) # number of columns and rows for clean data Test
-summary(DTest_new)
-
-# delete NAs in whole data source
-data_collection <- na.omit(data_collection)
-
-# Univariate analysis of numeric variables -------------------------------------
-## Summary for each attribute
-headofTable <- c(
-  "Num. of Children", "Num. Other Product", "Year of Birth",
-  "Due amount", "Paid amount", "Delay"
-)
-EX <- c(
-  mean(data_collection$number_of_children),
-  mean(data_collection$number_other_product), mean(data_collection$birth_year),
-  mean(data_collection$due_amount), mean(data_collection$paid_amount),
-  mean(data_collection$delay)
-)
-VarX <- c(
-  var(data_collection$number_of_children),
-  var(data_collection$number_other_product), var(data_collection$birth_year),
-  var(data_collection$due_amount), var(data_collection$paid_amount),
-  var(data_collection$delay)
-)
-Median <- c(
-  median(data_collection$number_of_children),
-  median(data_collection$number_other_product),
-  median(data_collection$birth_year), median(data_collection$due_amount),
-  median(data_collection$paid_amount), median(data_collection$delay)
-)
-Q1 <- c(
-  quantile(data_collection$number_of_children, probs = 1 / 4),
-  quantile(data_collection$number_other_product, probs = 1 / 4),
-  quantile(data_collection$birth_year, probs = 1 / 4),
-  quantile(data_collection$due_amount, probs = 1 / 4),
-  quantile(data_collection$paid_amount, probs = 1 / 4),
-  quantile(data_collection$delay, probs = 1 / 4)
-)
-Q3 <- c(
-  quantile(data_collection$number_of_children, probs = c(3 / 4)),
-  quantile(data_collection$number_other_product, probs = c(3 / 4)),
-  quantile(data_collection$birth_year, probs = c(3 / 4)),
-  quantile(data_collection$due_amount, probs = c(3 / 4)),
-  quantile(data_collection$paid_amount, probs = c(3 / 4)),
-  quantile(data_collection$delay, probs = 3 / 4)
-)
-Min <- c(
-  min(data_collection$number_of_children),
-  min(data_collection$number_other_product),
-  min(data_collection$birth_year), min(data_collection$due_amount),
-  min(data_collection$paid_amount), min(data_collection$delay)
-)
-Max <- c(
-  max(data_collection$number_of_children),
-  max(data_collection$number_other_product), max(data_collection$birth_year),
-  max(data_collection$due_amount), max(data_collection$paid_amount),
-  max(data_collection$delay)
-)
-
-summaryData <- distinct(data.frame(headofTable, EX, VarX, Median, Q1, Q3, Min,
-  Max,
-  check.rows = FALSE, check.names = FALSE
-))
-
-# Density plots for numeric attributes and dates
-density_plots <- list()
-
-density_plots[[1]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(contract_id)) +
-  geom_density() +
-  geom_vline(
-    xintercept = mean(data_collection$contract_id),
-    color = "blue", linetype = "dashed", size = 1
-  ) +
-  labs(
-    title = "Distribution of contract_id",
-    x = "Contract ID",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-density_plots[[2]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(payment_order), colors = ) +
-  geom_density() +
-  geom_vline(
-    xintercept = mean(data_collection$payment_order, na.rm = TRUE),
-    color = "blue", linetype = "dashed", size = 1
-  ) +
-  labs(
-    title = "Distribution of payment_order",
-    x = "Payment order",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-density_plots[[3]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(number_of_children), colors = ) +
-  geom_bar() +
-  geom_vline(
-    xintercept = mean(data_collection$number_of_children),
-    color = "blue", linetype = "dashed", size = 1
-  ) +
-  labs(
-    title = "Histogram of number_of_children",
-    x = "Number of children",
-    y = "Count"
-  ) +
-  scale_x_continuous(breaks = seq(from = 0, to = 10, by = 1)) +
-  theme_minimal()
-
-density_plots[[4]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(number_other_product)) +
-  geom_bar() +
-  geom_vline(
-    xintercept = mean(data_collection$number_other_product),
-    color = "blue", linetype = "dashed", size = 1
-  ) +
-  labs(
-    title = "Histogram of number_other_product",
-    x = "Number of other products",
-    y = "Count"
-  ) +
-  scale_x_continuous(breaks = seq(from = 1, to = 13, by = 1)) +
-  theme_minimal()
-
-density_plots[[5]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(birth_year)) +
-  geom_bar() +
-  geom_vline(
-    xintercept = mean(data_collection$birth_year), color = "blue",
-    linetype = "dashed", size = 1
-  ) +
-  labs(
-    title = "Histogram of birth_year",
-    x = "Birth year",
-    y = "Count"
-  ) +
-  scale_x_continuous(breaks = seq(from = 1900, to = 2000, by = 10)) +
-  theme_minimal()
-
-density_plots[[6]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(birth_month)) +
-  geom_bar() +
-  geom_vline(
-    xintercept = mean(data_collection$birth_month), color = "blue",
-    linetype = "dashed", size = 1
-  ) +
-  labs(
-    title = "Histogram of birth_month",
-    x = "Birth month",
-    y = "Count"
-  ) +
-  scale_x_continuous(breaks = seq(from = 1, to = 12, by = 1)) +
-  theme_minimal()
-
-density_plots[[7]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(cf_val)) +
-  geom_density() +
-  geom_vline(
-    xintercept = mean(data_collection$cf_val, na.rm = TRUE), color = "blue",
-    linetype = "dashed", size = 1
-  ) +
-  labs(
-    title = "Distribution of cf_val",
-    x = "CF value",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-density_plots[[8]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(due_amount)) +
-  geom_density() +
-  geom_vline(
-    xintercept = mean(data_collection$due_amount), color = "blue",
-    linetype = "dashed", size = 1
-  ) +
-  labs(
-    title = "Distribution of due_amount",
-    x = "Due amount",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-density_plots[[9]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(paid_amount)) +
-  geom_density() +
-  geom_vline(
-    xintercept = mean(data_collection$paid_amount), color = "blue",
-    linetype = "dashed", size = 1
-  ) +
-  labs(
-    title = "Distribution of paid amount",
-    x = "Paid amount",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-density_plots[[10]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(delay)) +
-  geom_density() +
-  geom_vline(
-    xintercept = mean(data_collection$delay, na.rm = TRUE),
-    color = "blue",
-    linetype = "dashed", size = 1
-  ) +
-  labs(
-    title = "Distribution of delay",
-    x = "Delay",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-density_plots[[11]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(due_date)) +
-  geom_density() +
-  geom_vline(
-    xintercept = mean(data_collection$due_date),
-    color = "blue", linetype = "dashed", size = 1
-  ) +
-  labs(
-    title = "Distribution of due_date",
-    x = "Due date",
-    y = "Count"
-  ) +
-  scale_x_date(date_labels = "%Y") +
-  theme_minimal()
-
-density_plots[[12]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(payment_date)) +
-  geom_density() +
-  geom_vline(
-    xintercept = mean(data_collection$payment_date, na.rm = T),
-    color = "blue", linetype = "dashed", size = 1
-  ) +
-  labs(
-    title = "Distribution of payment_date",
-    x = "Payment date",
-    y = "Count"
-  ) +
-  scale_x_date(date_labels = "%Y") +
-  theme_minimal()
-
-# Plot distribution for each numeric attribute
-density_plots <- gridExtra::grid.arrange(grobs = density_plots, ncol = 2)
-
-#  Boxplots for numeric attributes
-boxplots <- list()
-boxplots[[1]] <- data_collection %>%
-  drop_na() %>%
-  ggplot() +
-  geom_boxplot(aes(y = number_of_children)) +
-  scale_x_discrete() +
-  labs(title = "Number of children")
-
-boxplots[[2]] <- data_collection %>%
-  drop_na() %>%
-  ggplot() +
-  geom_boxplot(aes(y = number_other_product)) +
-  scale_x_discrete() +
-  labs(title = "Number other product")
-
-boxplots[[3]] <- data_collection %>%
-  drop_na() %>%
-  ggplot() +
-  geom_boxplot(aes(y = birth_year)) +
-  scale_x_discrete() +
-  labs(title = "Birth year")
-
-boxplots[[4]] <- data_collection %>%
-  drop_na() %>%
-  ggplot() +
-  geom_boxplot(aes(y = birth_month)) +
-  scale_x_discrete() +
-  labs(title = "Birth year")
-
-boxplots[[5]] <- data_collection %>%
-  drop_na() %>%
-  ggplot() +
-  geom_boxplot(aes(y = cf_val)) +
-  scale_x_discrete() +
-  labs(title = "CF value")
-
-boxplots[[6]] <- data_collection %>%
-  drop_na() %>%
-  ggplot() +
-  geom_boxplot(aes(y = due_amount)) +
-  labs(title = "Due amount")
-
-boxplots[[7]] <- data_collection %>%
-  drop_na() %>%
-  ggplot() +
-  geom_boxplot(aes(y = paid_amount)) +
-  labs(title = "Paid amount")
-
-boxplots[[8]] <- data_collection %>%
-  drop_na() %>%
-  ggplot() +
-  geom_boxplot(aes(y = delay)) +
-  scale_x_discrete() +
-  labs(title = "Delay")
-
-# Plot boxplot for each numeric attribute
-boxplots <- gridExtra::grid.arrange(grobs = boxplots, ncol = 4)
-
-# Bivariate analysis of continuous variables wrt categorical variables ---------
-############## exploring Data #
-
-#### Data statistic #
 # Statistical dependence of delay on gender
 meanG_D <- data_collection %>%
   group_by(gender) %>%
@@ -945,7 +1035,7 @@ data_collection %>%
   ) +
   theme_minimal()
 
-# Density plot of paid amount according to total earnings
+# Distribution of paid amount according to total earnings
 data_collection %>%
   drop_na() %>%
   ggplot(aes(paid_amount, color = total_earnings)) +
@@ -955,7 +1045,7 @@ data_collection %>%
     linetype = "dashed", size = 1
   ) +
   labs(
-    title = "Histogram of paid amount by total earnings",
+    title = "Distribution of paid amount by total earnings",
     x = "Paid amount",
     y = "Count"
   ) +
@@ -991,11 +1081,85 @@ data_collection %>%
     linetype = "dashed", size = 1
   ) +
   labs(
-    title = "Histogram of due amount by contract status",
+    title = "Distribution of due amount by contract status",
     x = "Due amount",
     y = "Count"
   ) +
   theme_minimal()
+
+
+
+# Verify data quality ==========================================================
+
+# Are there missing values in the data? If so, how are they represented, where
+# do they occur, and how common are they?
+
+variables_miss <- miss_var_summary(data_collection)
+print(variables_miss)
+# different_contract_area missing 20%, cf_val living_area kc_flag missing 19,9%
+# 1173 payment date missing, not yet paid
+gg_miss_var(data_collection)
+
+vis_miss()
+
+# more characteristics missing at the same time
+data_collection %>%
+  gg_miss_var(facet = total_earnings)
+
+# what with NAs in payment order
+# to do payment order id!!
+
+
+
+# Check for plausibility of values
+for (i in c(1:ncol)) {
+  if (is.factor(data_collection[, i])) {
+    print(colnames(data_collection[i]))
+    print(prop.table(table(data_collection[, i])))
+    cat(sep = "\n\n")
+  }
+}
+
+
+
+
+####### Generate test and train data ##
+# fix random generator
+set.seed(2020)
+n_train <- round(0.08 * nrow)
+index_train <- sample(1:nrow, n_train)
+
+DTrain <- data_collection[index_train, ]
+DTest <- data_collection[-index_train, ]
+
+# Summary to find if data have NAs
+summary(DTrain)
+summary(DTest)
+
+# Detailed summary of data
+Dtrainskim <- skim(DTrain)
+Dtestskrim <- skim(DTest)
+
+## See all NAs for all dataset
+skim(DTrain)
+skim(DTest)
+
+## Create a new data set without NAs
+DTrain_new <- na.omit(DTrain)
+DTest_new <- na.omit(DTest)
+
+
+
+# Number of column and row and summary in data train w-o NAs
+dim(DTrain_new) # number of columns and rows for clean data Train
+summary(DTrain_new)
+
+# Number of column and row and summary in data test w-o NAs
+dim(DTest_new) # number of columns and rows for clean data Test
+summary(DTest_new)
+
+# delete NAs in whole data source
+data_collection <- na.omit(data_collection)
 
 # Data preparation -------------------------------------------------------------
 # Clean the data - estimation of missing data
