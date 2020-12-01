@@ -58,7 +58,7 @@ data_group3 = data_collection %>%
 
 
 #joining frist two data_groups
-data_total = left_join(data_group1, data_group2) 
+data_total = left_join(data_group, data_group2) 
 
 # joining remaining
 data_total = left_join(data_total, data_group3)  
