@@ -1,13 +1,15 @@
 ---
 title: "Documentation"
-author: "Ivana Stanova"
+author: "Lenka Stastna, Ivana Stanova"
 date: "19 11 2020"
 output:
-  html_document:
+  bookdown::html_document2:
+    fig_caption: yes
     toc: true
     toc_depth: 2
     number_sections: true
-  pdf_document:
+  bookdown::pdf_document2:
+    fig_caption: yes
     keep_tex: true
 ---
 
@@ -79,7 +81,8 @@ p.mat <- data_collection %>%
 ## Data Understanding
 ### Data Description Report
 
-The initial data was provided in a comma-separated values file, and was loaded and processed using the R programming language. Dataset used in this analysis contains 2 353 012 observations and 24 variables.
+The initial data was provided in a comma-separated values file, and was loaded and processed using the R programming language. Dataset used in this analysis contains 2 353 012 observations and 24 variables. Out of the 24 variables, 13 are of factor datatype, 9 are numeric and 2 are dates.
+All columns from the initial data were converted to the correct datype according to the data description file, which was provided. Column "payed_ammount" was replaced by column "paid_amount".
 
 |Column name|Description|Type|Values|
 |-----------|-----------|-----------|
@@ -109,162 +112,10 @@ The initial data was provided in a comma-separated values file, and was loaded a
 |payed_amount|What was payed at a certain date|Numeric|(0,…)|
 
 #### Value ranges
-
-```{r frequencies, echo=FALSE}
-frequencies <- list()
-frequencies[[1]] <- data_collection %>%
-  group_by(product_type) %>%
-  summarize(frequency = n()) %>%
-  arrange(desc(frequency)) %>%
-  mutate(
-    relative_frequency = frequency / sum(frequency),
-    relative_cumulative_frequency = cumsum(relative_frequency),
-    relative_frequency = round(100 * relative_frequency, 2),
-    relative_cumulative_frequency = round(
-      100 * relative_cumulative_frequency, 2), nr = row_number(-frequency)
-  )
-frequencies[[2]] <- data_collection %>%
-  group_by(contract_status) %>%
-  summarize(frequency = n()) %>%
-  arrange(desc(frequency)) %>%
-  mutate(
-    relative_frequency = frequency / sum(frequency),
-    relative_cumulative_frequency = cumsum(relative_frequency),
-    relative_frequency = round(100 * relative_frequency, 2),
-    relative_cumulative_frequency = round(
-      100 * relative_cumulative_frequency, 2), nr = row_number(-frequency)
-  )
-frequencies[[3]] <- data_collection %>%
-  group_by(business_discount) %>%
-  summarize(frequency = n()) %>%
-  arrange(desc(frequency)) %>%
-  mutate(
-    relative_frequency = frequency / sum(frequency),
-    relative_cumulative_frequency = cumsum(relative_frequency),
-    relative_frequency = round(100 * relative_frequency, 2),
-    relative_cumulative_frequency = round(
-      100 * relative_cumulative_frequency, 2), nr = row_number(-frequency)
-  )
-frequencies[[4]] <- data_collection %>%
-  group_by(gender) %>%
-  summarize(frequency = n()) %>%
-  arrange(desc(frequency)) %>%
-  mutate(
-    relative_frequency = frequency / sum(frequency),
-    relative_cumulative_frequency = cumsum(relative_frequency),
-    relative_frequency = round(100 * relative_frequency, 2),
-    relative_cumulative_frequency = round(
-      100 * relative_cumulative_frequency, 2), nr = row_number(-frequency)
-  )
-frequencies[[5]] <- data_collection %>%
-  group_by(marital_status) %>%
-  summarize(frequency = n()) %>%
-  arrange(desc(frequency)) %>%
-  mutate(
-    relative_frequency = frequency / sum(frequency),
-    relative_cumulative_frequency = cumsum(relative_frequency),
-    relative_frequency = round(100 * relative_frequency, 2),
-    relative_cumulative_frequency = round(
-      100 * relative_cumulative_frequency, 2), nr = row_number(-frequency)
-  )
-frequencies[[6]] <- data_collection %>%
-  group_by(clients_phone) %>%
-  summarize(frequency = n()) %>%
-  arrange(desc(frequency)) %>%
-  mutate(
-    relative_frequency = frequency / sum(frequency),
-    relative_cumulative_frequency = cumsum(relative_frequency),
-    relative_frequency = round(100 * relative_frequency, 2),
-    relative_cumulative_frequency = round(
-      100 * relative_cumulative_frequency, 2), nr = row_number(-frequency)
-  )
-frequencies[[7]] <- data_collection %>%
-  group_by(client_mobile) %>%
-  summarize(frequency = n()) %>%
-  arrange(desc(frequency)) %>%
-  mutate(
-    relative_frequency = frequency / sum(frequency),
-    relative_cumulative_frequency = cumsum(relative_frequency),
-    relative_frequency = round(100 * relative_frequency, 2),
-    relative_cumulative_frequency = round(
-      100 * relative_cumulative_frequency, 2), nr = row_number(-frequency)
-  )
-frequencies[[8]] <- data_collection %>%
-  group_by(client_email) %>%
-  summarize(frequency = n()) %>%
-  arrange(desc(frequency)) %>%
-  mutate(
-    relative_frequency = frequency / sum(frequency),
-    relative_cumulative_frequency = cumsum(relative_frequency),
-    relative_frequency = round(100 * relative_frequency, 2),
-    relative_cumulative_frequency = round(
-      100 * relative_cumulative_frequency, 2), nr = row_number(-frequency)
-  )
-frequencies[[9]] <- data_collection %>%
-  group_by(total_earnings) %>%
-  summarize(frequency = n()) %>%
-  arrange(desc(frequency)) %>%
-  mutate(
-    relative_frequency = frequency / sum(frequency),
-    relative_cumulative_frequency = cumsum(relative_frequency),
-    relative_frequency = round(100 * relative_frequency, 2),
-    relative_cumulative_frequency = round(
-      100 * relative_cumulative_frequency, 2), nr = row_number(-frequency)
-  )
-frequencies[[10]] <- data_collection %>%
-  group_by(living_area) %>%
-  summarize(frequency = n()) %>%
-  arrange(desc(frequency)) %>%
-  mutate(
-    relative_frequency = frequency / sum(frequency),
-    relative_cumulative_frequency = cumsum(relative_frequency),
-    relative_frequency = round(100 * relative_frequency, 2),
-    relative_cumulative_frequency = round(
-      100 * relative_cumulative_frequency, 2), nr = row_number(-frequency)
-  )
-frequencies[[11]] <- data_collection %>%
-  group_by(different_contact_area) %>%
-  summarize(frequency = n()) %>%
-  arrange(desc(frequency)) %>%
-  mutate(
-    relative_frequency = frequency / sum(frequency),
-    relative_cumulative_frequency = cumsum(relative_frequency),
-    relative_frequency = round(100 * relative_frequency, 2),
-    relative_cumulative_frequency = round(
-      100 * relative_cumulative_frequency, 2), nr = row_number(-frequency)
-  )
-frequencies[[12]] <- data_collection %>%
-  group_by(kc_flag) %>%
-  summarize(frequency = n()) %>%
-  arrange(desc(frequency)) %>%
-  mutate(
-    relative_frequency = frequency / sum(frequency),
-    relative_cumulative_frequency = cumsum(relative_frequency),
-    relative_frequency = round(100 * relative_frequency, 2),
-    relative_cumulative_frequency = round(
-      100 * relative_cumulative_frequency, 2), nr = row_number(-frequency)
-  )
-frequencies[[13]] <- data_collection %>%
-  group_by(kzmz_flag) %>%
-  summarize(frequency = n()) %>%
-  arrange(desc(frequency)) %>%
-  mutate(
-    relative_frequency = frequency / sum(frequency),
-    relative_cumulative_frequency = cumsum(relative_frequency),
-    relative_frequency = round(100 * relative_frequency, 2),
-    relative_cumulative_frequency = round(
-      100 * relative_cumulative_frequency, 2), nr = row_number(-frequency)
-  )
-frequencies
-```
-
-
-
-
-
+Frequency, relative frequency and relative cumulative frequency were computed for each category in all categorical variables. All frequency tables can be located in the "frequencies" list.
 
 #### Attribute correlations
-```{r correlogram, echo=FALSE}
+```{r correlogram, echo=FALSE, fig.cap="\\label{fig:correlogram}Correlation plot"}
 correlogram <- data_collection %>%
   drop_na() %>%
   select_if(is.numeric) %>%
@@ -280,20 +131,91 @@ correlogram <- data_collection %>%
 print(correlogram)
 ```
 
-We computed correlation coefficients between all possible pairs of numeric variables and discovered strong positive correlation between due amount and paid amount. This could be due to the fact that in the event that the installment has already been paid, the due amount and the paid amount would assume the same value. Correlation between the remaining pairs of numeric variables was either nonexistent or negligible.
+We computed correlation coefficients between all possible pairs of numeric variables, see Figure \@ref(fig:correlogram), and discovered strong positive correlation between due amount and paid amount. This could be due to the fact that in the event that the installment has already been paid, the due amount and the paid amount would assume the same value. Correlation between the remaining pairs of numeric variables was either nonexistent or negligible.
 Then, the significance of correlation between due amount and paid amount was tested using Pearson's product moment correlation coefficient. The pair of attributes was found to be significantly correlated with a correlation coefficient  of 0.76 and p-value less than 2.2e-16.
 
-
-
+Relationship between categorical variables was tested using chi-squared test with the significance level of 0.05. All significantly correlated pairs of variables can be accessed in "categorical_rel" dataframe.
 
 #### Basic statistics
+Basic statistics computed for numeric variables can be located in Table \ref{tab:statistics}. Distribution of numeric and categorical variables was visualized using boxplots, density plots and histograms, see Figure \@ref(fig:boxplots), Figure \@ref(fig:coverage) and Figure \@ref(fig:density).
 
 ```{r statistics, echo=FALSE}
-skim(data_collection[c(1:24)])
+# Summary for each attribute
+headofTable <- c(
+  "Num. of Children", "Num. Other Product", "Year of Birth",
+  "Due amount", "Paid amount", "Delay"
+)
+EX <- c(
+  mean(data_collection$number_of_children),
+  mean(data_collection$number_other_product), mean(data_collection$birth_year),
+  mean(data_collection$due_amount), mean(data_collection$paid_amount),
+  mean(data_collection$delay)
+)
+VarX <- c(
+  var(data_collection$number_of_children),
+  var(data_collection$number_other_product), var(data_collection$birth_year),
+  var(data_collection$due_amount), var(data_collection$paid_amount),
+  var(data_collection$delay)
+)
+Median <- c(
+  median(data_collection$number_of_children),
+  median(data_collection$number_other_product),
+  median(data_collection$birth_year), median(data_collection$due_amount),
+  median(data_collection$paid_amount), median(data_collection$delay)
+)
+Q1 <- c(
+  quantile(data_collection$number_of_children, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$number_other_product, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$birth_year, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$due_amount, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$paid_amount, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$delay, probs = 1 / 4, na.rm = TRUE)
+)
+Q3 <- c(
+  quantile(data_collection$number_of_children, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$number_other_product, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$birth_year, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$due_amount, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$paid_amount, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$delay, probs = 3 / 4, na.rm = TRUE)
+)
+Min <- c(
+  min(data_collection$number_of_children),
+  min(data_collection$number_other_product),
+  min(data_collection$birth_year), min(data_collection$due_amount),
+  min(data_collection$paid_amount), min(data_collection$delay)
+)
+Max <- c(
+  max(data_collection$number_of_children),
+  max(data_collection$number_other_product), max(data_collection$birth_year),
+  max(data_collection$due_amount), max(data_collection$paid_amount),
+  max(data_collection$delay)
+)
+summaryData <- distinct(data.frame(headofTable, EX, VarX, Median, Q1, Q3, Min,
+  Max,
+  check.rows = FALSE, check.names = FALSE
+))
 ```
 
+## Data Exploration Report
+We found out that contracts are mostly
+most products are type 1
+ontract status mostly 1, then 5,6,8,7 some 2,3,4...What does it mean??
+most payments in any part of the payment sequence have a discount
+marital status mostly 3,
+mostly 0 children
+mostly 1 other product
+almost no email contact
+total earning level mostly not declared
+mostly not different contact area
+mostly false KC flag - mostly owns local citizenship
+mostly false KZMZ flag  mostly did not fill employer
 
-```{r density, echo=FALSE}
+## Data Quality Report
+
+## Attachments
+
+```{r density, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:density}Density plots."}
 density_plots <- list()
 density_plots[[1]] <- data_collection %>%
   drop_na() %>%
@@ -613,7 +535,66 @@ density_plots[[12]] <- data_collection %>%
 density_plots <- grid.arrange(grobs = density_plots, ncol = 2)
 ```
 
-```{r coverage, echo=FALSE}
+```{r boxplots, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:boxplots}Boxplots for numeric attributes."}
+boxplots <- list()
+boxplots[[1]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = number_of_children)) +
+  scale_x_discrete() +
+  labs(title = "Number of children")
+
+boxplots[[2]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = number_other_product)) +
+  scale_x_discrete() +
+  labs(title = "Number other product")
+
+boxplots[[3]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = birth_year)) +
+  scale_x_discrete() +
+  labs(title = "Birth year")
+
+boxplots[[4]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = birth_month)) +
+  scale_x_discrete() +
+  labs(title = "Birth month")
+
+boxplots[[5]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = cf_val)) +
+  scale_x_discrete() +
+  labs(title = "CF value")
+
+boxplots[[6]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = due_amount)) +
+  labs(title = "Due amount")
+
+boxplots[[7]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = paid_amount)) +
+  labs(title = "Paid amount")
+
+boxplots[[8]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = delay)) +
+  scale_x_discrete() +
+  labs(title = "Delay")
+
+boxplots <- grid.arrange(grobs = boxplots, ncol = 4)
+```
+
+```{r coverage, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:coverage}Distribution of categorical attributes"}
 coverage <- list()
 coverage[[1]] <- ggplot(data = data_collection, aes(x = product_type)) +
   geom_bar() +
@@ -644,10 +625,17 @@ coverage[[9]] <- ggplot(data = data_collection, aes(x = total_earnings)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1)) +
   coord_flip()
-coverage[[10]] <- ggplot(data = data_collection, aes(x = living_area)) +
-  geom_bar() +
-  theme(axis.text.x = element_text(angle = 0, hjust = 1)) +
-  coord_flip()
+coverage[[10]] <- data_collection %>%
+  group_by(living_area) %>%
+  summarize(frequency = n()) %>%
+  arrange(desc(frequency)) %>%
+  mutate(
+    relative_frequency = frequency / sum(frequency),
+    relative_frequency = round(100 * relative_frequency, 2)
+    ) %>%
+  head() %>%
+  as.data.frame() %>%
+  tableGrob(theme = ttheme_default(base_size = 8, padding = unit(c(2,2), "mm")))
 coverage[[11]] <- ggplot(data = data_collection, aes(x = different_contact_area)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
@@ -659,28 +647,3 @@ coverage[[13]] <- ggplot(data = data_collection, aes(x = kzmz_flag)) +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
 coverage <- grid.arrange(grobs = coverage, ncol = 3)
 ```
-
-
-
-
-
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
-```
-
-## Data Exploration Report
-
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
-```
-
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
-
-## Data Quality Report

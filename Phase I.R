@@ -161,28 +161,6 @@ categorical_rel <- as.data.frame(categorical_rel)
 categorical_rel <- categorical_rel %>%
   filter_all(any_vars(!is.na(.)))
 
-cont_vector <- unique(cont_vector)
-
-data_collection %>%
-  ggplot(aes(data_collection[, 6], fill = data_collection[, 6])) +
-  geom_bar() +
-  facet_grid(~ data_collection[, 5]) +
-  labs(
-    title = paste0(
-      "Distribution of ", names(data_collection)[6], " by ",
-      names(data_collection)[5]
-    ),
-    fill = paste0(names(data_collection)[6]),
-    x = paste0(names(data_collection)[6]),
-    y = "Count",
-    color = paste0()
-  ) +
-  theme_minimal()
-
-data_collection %>%
-  ggplot(aes(data_collection[, 5])) +
-  geom_bar(aes(fill = data_collection[, 6]), positon = "fill")
-
 # Univariate analysis of numeric variables #####################################
 # Summary for each attribute
 headofTable <- c(
@@ -208,20 +186,20 @@ Median <- c(
   median(data_collection$paid_amount), median(data_collection$delay)
 )
 Q1 <- c(
-  quantile(data_collection$number_of_children, probs = 1 / 4),
-  quantile(data_collection$number_other_product, probs = 1 / 4),
-  quantile(data_collection$birth_year, probs = 1 / 4),
-  quantile(data_collection$due_amount, probs = 1 / 4),
-  quantile(data_collection$paid_amount, probs = 1 / 4),
-  quantile(data_collection$delay, probs = 1 / 4)
+  quantile(data_collection$number_of_children, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$number_other_product, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$birth_year, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$due_amount, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$paid_amount, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$delay, probs = 1 / 4, na.rm = TRUE)
 )
 Q3 <- c(
-  quantile(data_collection$number_of_children, probs = c(3 / 4)),
-  quantile(data_collection$number_other_product, probs = c(3 / 4)),
-  quantile(data_collection$birth_year, probs = c(3 / 4)),
-  quantile(data_collection$due_amount, probs = c(3 / 4)),
-  quantile(data_collection$paid_amount, probs = c(3 / 4)),
-  quantile(data_collection$delay, probs = 3 / 4)
+  quantile(data_collection$number_of_children, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$number_other_product, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$birth_year, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$due_amount, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$paid_amount, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$delay, probs = 3 / 4, na.rm = TRUE)
 )
 Min <- c(
   min(data_collection$number_of_children),
@@ -591,7 +569,7 @@ boxplots[[4]] <- data_collection %>%
   ggplot() +
   geom_boxplot(aes(y = birth_month)) +
   scale_x_discrete() +
-  labs(title = "Birth year")
+  labs(title = "Birth month")
 
 boxplots[[5]] <- data_collection %>%
   drop_na() %>%
@@ -796,7 +774,7 @@ frequencies[[13]] <- data_collection %>%
   )
 
 # Data exploration =============================================================
-# How much due amount equals to paid amount (check if cause of correlation)
+# How much due amount equals to paid amount (check if it causes the correlation)
 due_paid_amount_equal <- data_collection %>%
   group_by(contract_id) %>%
   summarise(result = sum(data_collection$due_amount == data_collection$paid_amount)/nrow) %>%
@@ -816,7 +794,7 @@ coverage[[2]] <- ggplot(data = data_collection, aes(x = contract_status)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
 
-# most payment orders have discount
+# most payments in any part of the payment sequence have a discount
 coverage[[3]] <- ggplot(data = data_collection, aes(x = business_discount)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
