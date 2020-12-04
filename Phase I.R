@@ -1,4 +1,3 @@
-
 ### Dependencies ---------------------------------------------------------------
 rm(list = ls()) # clear
 
@@ -23,14 +22,10 @@ library(gridExtra)
 
 # Put data files outside of the git folder in order to avoid pushing too large
 # files to repository
-# path_to_data <- 'D:/..../payment_dates_final.csv'
-path_to_data <- "D:/01 Skola VSE Statistika/DataX/zaverecny projekt/payment_dates_final.csv"
-# path_to_data <- "..\\payment_dates_final.csv"
-
+path_to_data <- ".\\payment_dates_final.csv"
 data_collection <- read.csv(path_to_data)
 
 # Data understanding -----------------------------------------------------------
-
 # Data description =============================================================
 # Data volume (number of rows and columns)
 nrow <- nrow(data_collection)
@@ -69,7 +64,6 @@ data_collection <- data_collection %>%
   mutate(different_contact_area = as.factor(different_contact_area))
 data_collection <- data_collection %>%
   mutate(kc_flag = as.factor(kc_flag))
-# Problem! cf_val appears to not be a factor, despite the description file !!!
 data_collection <- data_collection %>%
   mutate(cf_val = as.numeric(cf_val))
 data_collection <- data_collection %>%
@@ -82,6 +76,56 @@ data_collection <- data_collection %>%
 # Remove feature "payed_ammount" which was replaced by feature "paid_amount"
 data_collection <- subset(data_collection, select = -payed_ammount)
 
+# Clearing N/A values ----------------------------------------------------------
+
+# delete NA's in columns payment_order and payment_date
+data_collection <- data_collection %>% drop_na(payment_order, payment_date)
+
+# grouping by contract_id, payment_order and due_date and adding values of first row
+data_group <- data_collection %>%
+  select(contract_id, payment_order, due_date, living_area, different_contact_area, kc_flag, cf_val) %>%
+  group_by(contract_id, payment_order, due_date) %>%
+  filter(row_number() == 1)
+
+# grouping by contract_id, payment_order and due_date and adding values to column "payment_date"
+# to be the value of last row in the group.
+# This ensures, that the group will have payment date set to the date that happened last
+data_group2 <- data_collection %>%
+  select(contract_id, payment_order, due_date, payment_date) %>%
+  group_by(contract_id, payment_order, due_date) %>%
+  summarize(payment_date = last(payment_date))
+
+# grouping via same conditions as in first grouping but adding remaining columns
+data_group3 <- data_collection %>%
+  select(
+    contract_id, payment_order, due_date, product_type, contract_status, business_discount, gender,
+    marital_status, number_of_children, number_other_product, clients_phone, client_mobile, client_email, total_earnings,
+    birth_year, birth_month, kzmz_flag, due_amount, paid_amount
+  ) %>%
+  group_by(contract_id, payment_order, due_date) %>%
+  filter(row_number() == 1)
+
+# joining first two data_groups
+data_total <- left_join(data_group, data_group2)
+
+# joining remaining
+data_total <- left_join(data_total, data_group3)
+
+# controlling that there is no N/A's in dataset
+apply(data_total, 2, function(x) any(is.na(x)))
+
+# graphically show how many N/A's we have in our new Dataset
+# vis_miss(data_total, warn_large_data=FALSE)
+
+# droping N/A's in remaining three columns, because it was less then 0.1% of dataset
+data_final <- data_total %>% drop_na(living_area, different_contact_area, cf_val)
+
+# test that data_final doesn't contain any N/A's
+apply(data_final, 2, function(x) any(is.na(x)))
+
+# copying to the previous data_collection
+data_collection <- data_final
+
 # Create a feature for delay in days
 data_collection$delay <- difftime(data_collection$payment_date,
   data_collection$due_date, tz,
@@ -90,20 +134,17 @@ data_collection$delay <- difftime(data_collection$payment_date,
 data_collection <- data_collection %>%
   mutate(delay = as.numeric(delay))
 
-# Display the internal structure of the data
-str(data_collection)
-
 # Summary statistics of the data
 summary <- summary(data_collection)
 detailed_statistics <- skim(data_collection)
 
 # Analyze correlations between variables #######################################
 # Compute a matrix of correlation p-values and plot the correlation matrix
-p.mat <- data_collection %>%
+p.mat <- data_collection[, -c(3, 8)] %>%
   select_if(is.numeric) %>%
   cor_pmat()
 
-correlogram <- data_collection %>%
+correlogram <- data_collection[, -c(3, 8)] %>%
   drop_na() %>%
   select_if(is.numeric) %>%
   cor() %>%
@@ -118,7 +159,7 @@ correlogram <- data_collection %>%
 
 # Compute correlation matrix between all possible pairs of variables and select
 #   only rows containing moderate or strong values of correlation coefficient
-data_collection %>%
+data_collection[, -c(3, 8)] %>%
   select_if(is.numeric) %>%
   cor() %>%
   round(., 2) %>%
@@ -777,9 +818,8 @@ frequencies[[13]] <- data_collection %>%
 # How much due amount equals to paid amount (check if it causes the correlation)
 due_paid_amount_equal <- data_collection %>%
   group_by(contract_id) %>%
-  summarise(result = sum(data_collection$due_amount == data_collection$paid_amount)/nrow) %>%
+  summarise(result = sum(data_collection$due_amount == data_collection$paid_amount) / nrow) %>%
   head(n = 20L)
-
 
 # Check interesting coverage
 # most products are type 1
@@ -841,10 +881,10 @@ coverage[[10]] <- data_collection %>%
   mutate(
     relative_frequency = frequency / sum(frequency),
     relative_frequency = round(100 * relative_frequency, 2)
-    ) %>%
+  ) %>%
   head() %>%
   as.data.frame() %>%
-  tableGrob(theme = ttheme_default(base_size = 8, padding = unit(c(2,2), "mm")))
+  tableGrob(theme = ttheme_default(base_size = 8, padding = unit(c(2, 2), "mm")))
 
 # mostly not different contact area
 coverage[[11]] <- ggplot(data = data_collection, aes(x = different_contact_area)) +
@@ -1076,7 +1116,6 @@ print(variables_miss)
 # 1173 payment date missing, not yet paid
 gg_miss_var(data_collection)
 
-vis_miss()
 
 # more characteristics missing at the same time
 data_collection %>%
@@ -1086,9 +1125,9 @@ data_collection %>%
 # to do payment order id!!
 
 sum(is.na(data_collection$different_contact_area) == T &
-      is.na(data_collection$cf_val) == T &
-      is.na(data_collection$living_area) == T & 
-      is.na(data_collection$kc_flag) == T)
+  is.na(data_collection$cf_val) == T &
+  is.na(data_collection$living_area) == T &
+  is.na(data_collection$kc_flag) == T)
 
 sum(is.na(data_collection$kc_flag) == T)
 
@@ -1109,18 +1148,18 @@ for (i in c(1:ncol)) {
 # Clean the data - estimation of missing data
 
 # Feature engineering ==========================================================
-# This function takes a vector and shifts its values by 1. This means that 
-#   on the second position is the first value, on the third position is 
-#   the second value etc. This is necessary for feature engineering. 
-#   We want a cumulative sum/cumulative mean for previous payments, but 
+# This function takes a vector and shifts its values by 1. This means that
+#   on the second position is the first value, on the third position is
+#   the second value etc. This is necessary for feature engineering.
+#   We want a cumulative sum/cumulative mean for previous payments, but
 #   functions cummean/cumsum applied to a row[i] make the calculations using
 #   also the number on this line. This is where this function comes in handy.
-f_vec_shift <- function(x){
-  new_vec <- c(0, x[1:length(x)-1])
+f_vec_shift <- function(x) {
+  new_vec <- c(0, x[1:length(x) - 1])
   return(new_vec)
 }
 
-# Creating new features: was the delay larger than 21(140) days? 
+# Creating new features: was the delay larger than 21(140) days?
 data_collection <- data_collection %>%
   mutate(delay_21_y = ifelse(delay > 21, 1, 0)) %>%
   mutate(delay_140_y = ifelse(delay > 140, 1, 0))
@@ -1128,135 +1167,132 @@ data_collection <- data_collection %>%
 # Creating new features: mean delay for the whole client's history
 data_collection <- data_collection %>%
   nest(-contract_id) %>%
-  mutate(delay_indiv_help = map(.x = data, .f = ~cummean(.x$delay))) %>%
-  mutate(delay_indiv = map(.x = delay_indiv_help, .f = ~f_vec_shift(.x))) %>%
+  mutate(delay_indiv_help = map(.x = data, .f = ~ cummean(.x$delay))) %>%
+  mutate(delay_indiv = map(.x = delay_indiv_help, .f = ~ f_vec_shift(.x))) %>%
   select(-delay_indiv_help) %>%
   unnest(c(data, delay_indiv))
 
 # Creating new features: number of delays larger than 21(140) days
-# for the whole client's history. 
+# for the whole client's history.
 data_collection <- data_collection %>%
   nest(-contract_id) %>%
-  mutate(delay_indiv_21_help = map(.x = data, .f = ~cumsum(.x$delay_21_y))) %>%
-  mutate(delay_indiv_21 = map(.x = delay_indiv_21_help, .f = ~f_vec_shift(.x))) %>%
-  mutate(delay_indiv_140_help = map(.x = data, .f = ~cumsum(.x$delay_140_y))) %>%
-  mutate(delay_indiv_140 = map(.x = delay_indiv_140_help, .f = ~f_vec_shift(.x))) %>%
+  mutate(delay_indiv_21_help = map(.x = data, .f = ~ cumsum(.x$delay_21_y))) %>%
+  mutate(delay_indiv_21 = map(.x = delay_indiv_21_help, .f = ~ f_vec_shift(.x))) %>%
+  mutate(delay_indiv_140_help = map(.x = data, .f = ~ cumsum(.x$delay_140_y))) %>%
+  mutate(delay_indiv_140 = map(.x = delay_indiv_140_help, .f = ~ f_vec_shift(.x))) %>%
   select(-delay_indiv_21_help, -delay_indiv_140_help) %>%
   unnest(c(data, delay_indiv_21, delay_indiv_140))
 
 # This part of the feature engineering process is the longest, but the syntax
 # is not that complicated (compared to map/nest etc.).
-# It works like this: 
-# First, we create new features (variables, columns) for storing 
+# It works like this:
+# First, we create new features (variables, columns) for storing
 # the average payment delay for last 12/6/3/1 month.
-# In this section, I am also creating a set of new features with suffix _help, 
-# they serve only as a temporary helper. 
+# In this section, I am also creating a set of new features with suffix _help,
+# they serve only as a temporary helper.
 
-# It was necessasry rep() NA values, since 0 or any other number
-# would be misleading. 
+# It was necessary rep() NA values, since 0 or any other number
+# would be misleading.
 data_collection <- data_collection %>%
-  mutate(mean_delay_12m = rep(NA, nrow(data_collection))) %>% 
-  mutate(mean_delay_12m_help = rep(NA, nrow(data_collection))) %>%
-  mutate(mean_delay_6m = rep(NA, nrow(data_collection))) %>% 
-  mutate(mean_delay_6m_help = rep(NA, nrow(data_collection))) %>%
-  mutate(mean_delay_3m = rep(NA, nrow(data_collection))) %>% 
-  mutate(mean_delay_3m_help = rep(NA, nrow(data_collection))) %>%
-  mutate(mean_delay_1m = rep(NA, nrow(data_collection))) %>% 
-  mutate(mean_delay_1m_help = rep(NA, nrow(data_collection))) %>%
-  filter(is.na(payment_order) == F) %>% # POZOR, OVERIT!!!!!!!! 
+  transform(mean_delay_12m = rep(NA, nrow(data_collection))) %>%
+  transform(mean_delay_12m_help = rep(NA, nrow(data_collection))) %>%
+  transform(mean_delay_6m = rep(NA, nrow(data_collection))) %>%
+  transform(mean_delay_6m_help = rep(NA, nrow(data_collection))) %>%
+  transform(mean_delay_3m = rep(NA, nrow(data_collection))) %>%
+  transform(mean_delay_3m_help = rep(NA, nrow(data_collection))) %>%
+  transform(mean_delay_1m = rep(NA, nrow(data_collection))) %>%
+  transform(mean_delay_1m_help = rep(NA, nrow(data_collection))) %>%
+  filter(is.na(payment_order) == F) %>% # POZOR, OVERIT!!!!!!!!
   filter(is.na(delay) == F) # POZOR, OVERIT!!!!!!!!
 
 # Second we nest data again
 data_collection <- data_collection %>%
-  nest(-contract_id) 
+  nest(-contract_id)
 
-# And third, we loop through the data. A lot. 
-# The first loop loops through the nested data for each contract. 
-# The purpose of this main loop is similar to map() function. 
+# And third, we loop through the data. A lot.
+# The first loop loops through the nested data for each contract.
+# The purpose of this main loop is similar to map() function.
 # Maybe the inner loop could be written as a function and passed to
-# map() in .f argument, but not sure how big the runtime gains would be. 
-for(i in 1:nrow(data_collection)){
+# map() in .f argument, but not sure how big the runtime gains would be.
+for (i in 1:nrow(data_collection)) {
   df_actual <- data_collection$data[[i]]
-  
-  # The second loop loops through the dataframe for each contract. 
+
+  # The second loop loops through the dataframe for each contract.
   # There are 4 if conditions in this for loop -> 12/6/3/1 M delay.
-  # The logic is this: 
+  # The logic is this:
   # The algorithm identifies rows with due_date in the given date range, which
-  # means last 12/6/3/1 months. These rows are marked with 1 in the _help column. 
-  # Then, the average is calculated simply by multiplying delay column by 
-  # _help column and divided by the sum of _help. This works because the 
-  # _help column has only zeroes and ones. 
-  # Lastly, the _help columned is restarted for the next round. 
-  for(j in 1:nrow(df_actual)){
-    
+  # means last 12/6/3/1 months. These rows are marked with 1 in the _help column.
+  # Then, the average is calculated simply by multiplying delay column by
+  # _help column and divided by the sum of _help. This works because the
+  # _help column has only zeroes and ones.
+  # Lastly, the _help columned is restarted for the next round.
+  for (j in 1:nrow(df_actual)) {
+
     # Mean for the last 12 months
-    if(j > 12){
+    if (j > 12) {
       # Mark relevant rows with 1
       df_actual <- df_actual %>%
         mutate(mean_delay_12m_help = ifelse(due_date >= df_actual$due_date[j] - months(12) &
-                                              due_date < df_actual$due_date[j], 1, 0))
-      
+          due_date < df_actual$due_date[j], 1, 0))
+
       # Calculate mean
-      df_actual$mean_delay_12m[j] <-sum(df_actual$mean_delay_12m_help*df_actual$delay)/sum(df_actual$mean_delay_12m_help) 
+      df_actual$mean_delay_12m[j] <- sum(df_actual$mean_delay_12m_help * df_actual$delay) / sum(df_actual$mean_delay_12m_help)
       # Restart helper column
-      df_actual$mean_delay_12m_help = rep(NA, nrow(df_actual))
+      df_actual$mean_delay_12m_help <- rep(NA, nrow(df_actual))
     }
-    
+
     # Mean for the last 6 months
-    if(j > 6){
-      # Mark relevant rows with 1 
+    if (j > 6) {
+      # Mark relevant rows with 1
       df_actual <- df_actual %>%
         mutate(mean_delay_6m_help = ifelse(due_date >= df_actual$due_date[j] - months(6) &
-                                             due_date < df_actual$due_date[j], 1, 0))
-      
+          due_date < df_actual$due_date[j], 1, 0))
+
       # Calculate mean
-      df_actual$mean_delay_6m[j] <-sum(df_actual$mean_delay_6m_help*df_actual$delay)/sum(df_actual$mean_delay_6m_help) 
+      df_actual$mean_delay_6m[j] <- sum(df_actual$mean_delay_6m_help * df_actual$delay) / sum(df_actual$mean_delay_6m_help)
       # Restart helper column
-      df_actual$mean_delay_6m_help = rep(NA, nrow(df_actual))
+      df_actual$mean_delay_6m_help <- rep(NA, nrow(df_actual))
     }
-    
+
     # Mean for the last 3 months
-    if(j > 3){
-      # Mark relevant rows with 1 
+    if (j > 3) {
+      # Mark relevant rows with 1
       df_actual <- df_actual %>%
         mutate(mean_delay_3m_help = ifelse(due_date >= df_actual$due_date[j] - months(3) &
-                                             due_date < df_actual$due_date[j], 1, 0))
-      
+          due_date < df_actual$due_date[j], 1, 0))
+
       # Calculate mean
-      df_actual$mean_delay_3m[j] <-sum(df_actual$mean_delay_3m_help*df_actual$delay)/sum(df_actual$mean_delay_3m_help) 
+      df_actual$mean_delay_3m[j] <- sum(df_actual$mean_delay_3m_help * df_actual$delay) / sum(df_actual$mean_delay_3m_help)
       # Restart helper column
-      df_actual$mean_delay_3m_help = rep(NA, nrow(df_actual))
+      df_actual$mean_delay_3m_help <- rep(NA, nrow(df_actual))
     }
-    
+
     # Mean for the last 1 month
-    if(j > 1){
+    if (j > 1) {
       # Mark relevant rows with 1
       df_actual <- df_actual %>%
         mutate(mean_delay_1m_help = ifelse(due_date >= df_actual$due_date[j] - months(1) &
-                                             due_date < df_actual$due_date[j], 1, 0))
-      
+          due_date < df_actual$due_date[j], 1, 0))
+
       # Calculate mean
-      df_actual$mean_delay_1m[j] <-sum(df_actual$mean_delay_1m_help*df_actual$delay)/sum(df_actual$mean_delay_1m_help) 
+      df_actual$mean_delay_1m[j] <- sum(df_actual$mean_delay_1m_help * df_actual$delay) / sum(df_actual$mean_delay_1m_help)
       # Restart helper column
-      df_actual$mean_delay_1m_help = rep(NA, nrow(df_actual))
+      df_actual$mean_delay_1m_help <- rep(NA, nrow(df_actual))
     }
-    
   }
-  data_collection$data[[i]] <- df_actual 
-  
-  # Progress bar might be more elegant, someone can add later 
-  # There is 86 980 observations to loop through, so printing [i] gives a good idea of progress. 
+  data_collection$data[[i]] <- df_actual
+
+  # Progress bar might be more elegant, someone can add later
+  # There is 86 980 observations to loop through, so printing [i] gives a good idea of progress.
   print(i)
 }
 
 # Unnest the data
 # Remove helper columns
 data_collection <- data_collection %>%
-  unnest(-data) %>%
+  unnest(data) %>%
   select(-mean_delay_12m_help, -mean_delay_6m_help, -mean_delay_3m_help, -mean_delay_1m_help)
 
 
 # Write data to .txt for the model creation
 write.table(data_collection, file = "data_collection_prepared.txt", sep = ";")
-
-
