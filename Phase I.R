@@ -22,7 +22,7 @@ library(gridExtra)
 
 # Put data files outside of the git folder in order to avoid pushing too large
 # files to repository
-path_to_data <- ".\\payment_dates_final.csv"
+path_to_data <- "//payment_dates_final.csv"
 data_collection <- read.csv(path_to_data)
 
 # Data understanding -----------------------------------------------------------
@@ -91,16 +91,16 @@ data_group <- data_collection %>%
 # to be the value of last row in the group.
 # This ensures, that the group will have payment date set to the date that happened last
 data_group2 <- data_collection %>%
-  select(contract_id, payment_order, due_date, payment_date) %>%
+  select(contract_id, payment_order, due_date, payment_date, paid_amount) %>%
   group_by(contract_id, payment_order, due_date) %>%
-  summarize(payment_date = last(payment_date))
-
+  summarize(payment_date = last(payment_date), paid_amount = sum(paid_amount))
+  
 # grouping via same conditions as in first grouping but adding remaining columns
 data_group3 <- data_collection %>%
   select(
     contract_id, payment_order, due_date, product_type, contract_status, business_discount, gender,
     marital_status, number_of_children, number_other_product, clients_phone, client_mobile, client_email, total_earnings,
-    birth_year, birth_month, kzmz_flag, due_amount, paid_amount
+    birth_year, birth_month, kzmz_flag, due_amount
   ) %>%
   group_by(contract_id, payment_order, due_date) %>%
   filter(row_number() == 1)
