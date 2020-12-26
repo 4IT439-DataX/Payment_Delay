@@ -22,7 +22,7 @@ library(gridExtra)
 
 # Put data files outside of the git folder in order to avoid pushing too large
 # files to repository
-path_to_data <- ".\\payment_dates_final.csv"
+path_to_data <- "..\\payment_dates_final.csv"
 data_collection <- read.csv(path_to_data)
 
 # Data understanding -----------------------------------------------------------
@@ -1296,3 +1296,10 @@ data_collection <- data_collection %>%
 
 # Write data to .txt for the model creation
 write.table(data_collection, file = "data_collection_prepared.txt", sep = ";")
+
+
+
+# Exploratory analysis of the new features
+data_prepared <- read.delim("C:/Users/Lenka Šťastná/Documents/Rko/data_collection_prepared_new.txt", header = TRUE, sep = ";", dec = ".")
+summary(data_prepared)
+

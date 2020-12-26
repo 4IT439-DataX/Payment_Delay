@@ -25,7 +25,7 @@ library(gridExtra)
 ```
 
 ```{r load, eval=TRUE, include=FALSE, cache=TRUE}
-data_collection <- read.csv("D:/Dokumenty/ŠKOLA/4IT439 Data-X – aplikované analytické datové modely v reálných úlohách/Semestrálka/payment_dates_final.csv")
+data_collection <- read.csv("..\\payment_dates_final.csv")
 data_collection <- data_collection %>%
   mutate(due_date = as.Date(due_date, format = "%Y-%m-%d"))
 data_collection <- data_collection %>%
@@ -71,30 +71,6 @@ data_collection$delay <- difftime(data_collection$payment_date,
   data_collection$due_date, tz,
   units = "days"
 )
-data_collection <- data_collection %>% drop_na(payment_order, payment_date)
-data_group = data_collection %>%
-  select(contract_id, payment_order, due_date, living_area, different_contact_area, kc_flag, cf_val) %>%
-  group_by(contract_id, payment_order, due_date ) %>%
-  filter(row_number()==1)
-data_group2 = data_collection %>%
-  select(contract_id, payment_order, due_date, payment_date) %>%
-  group_by(contract_id, payment_order, due_date ) %>%
-  summarize(payment_date=last(payment_date))
-data_group3 = data_collection %>%
-  select(contract_id, payment_order, due_date, product_type, contract_status, business_discount, gender,
-         marital_status, number_of_children, number_other_product, clients_phone, client_mobile, client_email, total_earnings,
-         birth_year, birth_month, kzmz_flag, due_amount, paid_amount) %>%
-  group_by(contract_id, payment_order, due_date ) %>%
-  filter(row_number()==1)
-data_total = left_join(data_group, data_group2) 
-data_total = left_join(data_total, data_group3)  
-data_final <- data_total %>% drop_na(living_area, different_contact_area, cf_val)
-data_collection <- data_final
-data_collection <- data_collection %>%
-  mutate(delay = as.numeric(delay))
-p.mat <- data_collection %>%
-  select_if(is.numeric) %>%
-  cor_pmat
 ```
 
 ## Data Understanding
@@ -134,7 +110,7 @@ All columns from the initial data were converted to the correct datype according
 Frequency, relative frequency and relative cumulative frequency were computed for each category in all categorical variables. All frequency tables can be located in the "frequencies" list.
 
 #### Attribute correlations
-```{r correlogram, echo=FALSE, fig.cap="\\label{fig:correlogram}Correlation plot"}
+```{r correlogram, eval=FALSE, echo=FALSE, fig.cap="\\label{fig:correlogram}Correlation plot"}
 correlogram <- data_collection %>%
   drop_na() %>%
   select_if(is.numeric) %>%
@@ -217,20 +193,91 @@ summaryData <- distinct(data.frame(headofTable, EX, VarX, Median, Q1, Q3, Min,
 ```
 
 ## Data Exploration Report
-We found out that contracts are mostly
-most products are type 1
-contract status mostly 1, then 5,6,8,7 some 2,3,4...What does it mean??
-most payments in any part of the payment sequence have a discount
-marital status mostly 3,
-mostly 0 children
-mostly 1 other product
-almost no email contact
-total earning level mostly not declared
-mostly not different contact area
-mostly false KC flag - mostly owns local citizenship
-mostly false KZMZ flag  mostly did not fill employer
+NIECO HODIT
+Exploring the data, we did not find any special irregularities
 
 ## Data Quality Report
+### Data coverage
+Analyzing the data coverage we found discovered some interesting, but probably not very important findings
+We for example found out, that there clients mostly order the product type 1, 
+contracts are mostly in status number 1 or that most of the payments have some discount.
+We also discovered, that the marital status of the clients is mostly number 3 and they have most frequently no children.Clients also very frequently do not provide information about their earnings and they ordered mostly 1 other product.
+
+All the visualizations can be seen on Figure HODIT NIECO
+
+### Missing values
+Exploring the NA values in the dataset, we found out, that 4 attributes had 
+almost same percentage of missing values, as can be seen on the statistics on Figure \@ref(fig:Missing_stat). 
+Attributes kc_flag, living_area, cf_val and different_contact_area have the most missing values, almost 20 %, whereas payment_order has around 3,5 % and payment_date and delay have the same percentage, almost 0,5 %.
+
+Using a different visualization, that can be seen on Figure \@ref(fig:Missing_complex), 
+we discovered, that the four attributes with the highest percentage are 
+not missing at random but almost all at the same time.
+
+We found out, that contract_id together with payment_order were not creating a unique key of the data payment, 
+but one payment was divided into multiple parts, which was also causing problem with NA values in the four attributes. Data in the four attributes were not copied into other parts of a payment, but were present in just the first payment part. 
+We decided to unify the payment parts into only one payment by summarizing the 
+paid amount of all the parts and using the payment_date of the last paid part. 
+Thanks to the unification, the amount of NA values has markedly decreased. 
+
+Secondly, we dealt with the NA values in payment_order and payment_date.
+Since it was only less then 4 % of the dataset, and it was not possible to
+substitute the values, we decided to delete the rows.
+
+```{r miss_stat, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:Missing_stat}Basic statistics of the NA values in the data."}
+variables_miss <- miss_var_summary(data_collection)
+print(variables_miss)
+```
+
+```{r miss_complex, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:Missing_complex}Distribution of missing values"}
+gg_miss_upset(data_collection)
+```
+
+
+## Feature engineering
+
+```{r load_new_data, eval=TRUE, include=FALSE, cache=TRUE}
+data_prepared <- read.delim("..\\data_collection_prepared_new.txt", header = TRUE, sep = ";", dec = ".")
+```
+
+We decided to add new features to create higher-accuracy models.
+First of all, we computed a numerical feature "delay" counting the difference between payment_date and due_date. 
+
+Since we are creating two classification models deciding whether a new payment will be delayed
+for more than 21 days or more than 140 days, we created 2 new binary features "delay_21_y" and "delay_140_y".
+
+We also created a new numerical feature "delay_indiv" counting the mean delay for the whole client´s history. We also computed 2 new numerical features, "delay_indiv_21" and "delay_indiv_140" counting cumulative number of delayed payments (21, 140 days) by one contract
+
+Lastly, numerical features "mean_delay_1m" ,"mean_delay_3m", "mean_delay_6m", "mean_delay_12m" are computing the mean delay for 1/3/6/12 months for each contract.
+
+## Exploratory analysis of the new features
+### Data description report
+|Column name|Description|Type|Values|
+|-----------|-----------|-----------|
+|delay|Difference between payment_date and due_date|Int|{-N,...,N}|
+|delay_21_y|T/F if the delay is more than 21 days|Factor|{True, False}|
+|delay_140_y|T/F if the delay is more than 140 days|Int|Factor|{True, False}|
+|delay_indiv|Mean delay for the whole client's history|Int|{-N,...,N}|
+|delay_indiv_21|Cumulative sum of payments delayed for more than 21 days by contract|Int|{1,2,3,…,N}|
+|delay_indiv_140|Cumulative sum of the payments delayed for more than 140 days by contract |Int|{1,2,3,…,N}|
+|mean_delay_1m|Average payment delay for the last month|Int|{-N,...,N}|
+|mean_delay_3m|Average payment delay for the last 3 months|Int|{-N,...,N}|
+|mean_delay_6m|Average payment delay for the last 6 months|Int|{-N,...,N}|
+|mean_delay_12m|Average payment delay for the last 12 months|Int|{-N,...,N}|
+### Basic statistics
+### Missing values
+As can be seen on Figure, newly-created features also contain NA values. The highest percentage of missing values has attribute mean_delay_12m, almost 55 %. Together with mean_delay_6m, mean_delay_3m and mean_delay_1m, they are the only new attributes holding NA attributes. 
+
+It is not surprising, that these attributes have the highest percentage of NAs, since they compute results only every 12/6/3/1 months.
+
+We decided to replace the NA values by 0, so they can be later used in the modeling part.
+```{r miss_stat_new, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:Missing_stat_new}Basic statistics of the NA values in the preprocessed data."}
+print(miss_var_summary(data_prepared))
+```
+
+```{r miss_complex_new, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:Missing_complex_new}Distribution of missing values in the preprocessed data."}
+gg_miss_upset(data_prepared)
+```
 
 ## Attachments
 
@@ -613,7 +660,7 @@ boxplots[[8]] <- data_collection %>%
 boxplots <- grid.arrange(grobs = boxplots, ncol = 4)
 ```
 
-```{r coverage, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:coverage}Distribution of categorical attributes"}
+```{r coverage, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:coverage}Distribution of categorical attributes"}
 coverage <- list()
 coverage[[1]] <- ggplot(data = data_collection, aes(x = product_type)) +
   geom_bar() +
