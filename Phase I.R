@@ -1301,5 +1301,7 @@ write.table(data_collection, file = "data_collection_prepared.txt", sep = ";")
 
 # Exploratory analysis of the new features
 data_prepared <- read.delim("C:/Users/Lenka Šťastná/Documents/Rko/data_collection_prepared_new.txt", header = TRUE, sep = ";", dec = ".")
-summary(data_prepared)
+
+
+
 
