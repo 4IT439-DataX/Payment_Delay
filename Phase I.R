@@ -9,6 +9,7 @@ if (!require(skimr)) install.packages("skimr")
 if (!require(ggcorrplot)) install.packages("ggcorrplot")
 if (!require(gridExtra)) installed.packages("gridExtra")
 
+
 library(tidyverse)
 library(naniar)
 library(styler)
@@ -1299,9 +1300,14 @@ write.table(data_collection, file = "data_collection_prepared.txt", sep = ";")
 
 
 
-# Exploratory analysis of the new features
+# Data preparation of the newly added attributes
 data_prepared <- read.delim("C:/Users/Lenka Šťastná/Documents/Rko/data_collection_prepared_new.txt", header = TRUE, sep = ";", dec = ".")
+data_prepared <- data_prepared %>%
+  mutate(delay_140_y = as.factor(delay_140_y))
+data_prepared <- data_prepared %>%
+  mutate(delay_21_y = as.factor(delay_21_y))
 
+## Exploratory analysis
 
 
 
