@@ -19,6 +19,8 @@ library(ggcorrplot)
 library(gridExtra)
 
 
+
+
 # Load the initial data --------------------------------------------------------
 
 # Put data files outside of the git folder in order to avoid pushing too large
@@ -1308,6 +1310,4 @@ data_prepared <- data_prepared %>%
   mutate(delay_21_y = as.factor(delay_21_y))
 
 ## Exploratory analysis
-
-
 

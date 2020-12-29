@@ -1,18 +1,27 @@
 ---
-title: "Documentation"
+title: "Documentation of the Payment Delays Project"
 author: "Lenka Stastna, Ivana Stanova"
-date: "19 11 2020"
+date: "1 1 2021"
 output:
-  bookdown::pdf_document2:
-    fig_caption: yes
-    keep_tex: true
   bookdown::html_document2:
     fig_caption: yes
     toc: true
     toc_depth: 2
     number_sections: true
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: true
 ---
-Nejaký text z čoho pozostavala praca alebo ustredna tema? Zadanie? kto je sponzor? Kroky?
+Main topic of this data science project is to optimize the collection process. Sponsor of the project is Mr. Jiří Procházka, who decided on the scope of the project, provided data and helped define project deliverables.
+
+First of all it was important to understand the collection process. Clients are paying certain amount due to the certain date. If the client delays his payment, certain collection procedure takes place because of the costs that rise for the company. There are three actions taking place under different conditions. If the payment is delayed for 21 - 69 days, first action is taken. Second action is taken if the delay is between 70 - 139 days and the third action is taken for delay greater than 140 days.
+
+Our goal was to create three models. First model predicts whether the customer will be delayed in payment for 21+ days. Second model predicts whether the customer will be delayed in payment for 140+ days. Lastly, third model should estimate average number of days delayed if the client would exceed the first action. All three models were defined the baseline accuracy.
+
+As one of the deliverables, the project documentation describes project flow. Project consisted of three major steps: Data preparation, Modeling, Evaluation. All of the phases are described in detail with visualized results and findings later in this document.
+
+We chose to use R studio to prepare the date, create models and evaluate and RMarkdown was used to create documentation of the project.
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, fig.width = 12, fig.height = 8)
 library(tidyverse)
@@ -77,11 +86,11 @@ data_collection$delay <- difftime(data_collection$payment_date,
 ### Data Description Report
 
 The initial data was provided in a comma-separated values file, and was loaded and processed using the R programming language. Dataset used in this analysis contains 2 353 012 observations and 24 variables. Out of the 24 variables, 13 are of factor datatype, 9 are numeric and 2 are dates.
-All columns from the initial data were converted to the correct datype according to the data description file, which was provided. Column *payed_ammount* was replaced by column *paid_amount*. Column *payment_date* originally contained some blank fields, which were subsequently filled in as NA.
+All columns from the initial data were converted to the correct datype according to the data description file, which was provided. Column payed_ammount was replaced by column paid_amount. Column payment_date originally contained some blank fields, which were subsequently filled in as NA.
 
 |Column name|Description|Type|Values|
 |-----------|-----------|-----------|
-|contract_id|Unique identificator of the contract|Int|{1,2,3,…,N}|
+|contract_id|Unique identificator of the contract|Int|\{1,2,3,…,N}|
 |payment_order|Order of the payment|Int|{1,2,3,…}|
 |due_date|Payment deadline|Date|YY/MM/DD|
 |payment_date|Date of the payment|Date|YY/MM/DD|
@@ -191,6 +200,7 @@ summaryData <- distinct(data.frame(headofTable, EX, VarX, Median, Q1, Q3, Min,
   Max,
   check.rows = FALSE, check.names = FALSE
 ))
+summaryData
 ```
 
 ## Data Exploration Report
@@ -476,10 +486,11 @@ data_prepared %>%
   ggplot(aes(delay_indiv)) +
   geom_density() +
   labs(
-    title = "Distribution of delay_indiv",
+    title = "Distribution of delay_indiv UPRAVENA OS, NECHAME TAKTO??",
     x = "Delay_indiv",
     y = "Count"
   ) +
+  xlim(-500, 500) +
   theme_minimal()
 
 statistics_plots[[2]] <-
@@ -495,29 +506,71 @@ data_prepared %>%
   theme_minimal()
 
 statistics_plots[[3]] <-
+data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(mean_delay_3m)) +
+  geom_density() +
+  labs(
+    title = "3 m mean delay distribution",
+    x = "Mean delay 3 months",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+statistics_plots[[4]] <-
+data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(mean_delay_6m)) +
+  geom_density() +
+  labs(
+    title = "6 m mean delay distribution",
+    x = "Mean delay 6 months",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+
+statistics_plots[[5]] <-
+data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(mean_delay_12m)) +
+  geom_density() +
+  labs(
+    title = "12 m mean delay distribution",
+    x = "Mean delay 12 months",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+statistics_plots[[6]] <-
 ggplot(data = data_prepared, aes(x = delay_indiv_21)) +
   geom_bar() +
   theme_minimal()
 
-statistics_plots[[4]] <-
+statistics_plots[[7]] <-
 ggplot(data = data_prepared, aes(x = delay_indiv_140)) +
   geom_bar() +
   theme_minimal()
 
-statistics_plots[[5]] <-
+statistics_plots <- grid.arrange(grobs = statistics_plots, ncol = 2)
+
+```
+![delay_21](payment_delay_21.png)
+![delay_140](payment_delay_140.png)
+```{r help_new, echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
+
+statistics_plots[[8]] <-
 ggplot(data = data_prepared, aes(x = delay_21_y)) +
   geom_bar(aes(y = (..count..)/sum(..count..)))  + scale_y_continuous(labels=scales::percent) +
   geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "Count", vjust = -0.25) +
   labs(title = "Payment delay greater than 21 days", y = "Percent", x = "Delay greater than 21 days")
 
-statistics_plots[[6]] <-
+statistics_plots[[9]] <-
 ggplot(data = data_prepared, aes(x = delay_140_y)) +
   geom_bar(aes(y = (..count..)/sum(..count..)))  + scale_y_continuous(labels=scales::percent) +
   geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "Count", vjust = -0.25) +
   labs(title = "Payment delay greater than 140 days", y = "Percent", x = "Delay greater than 140 days")
 
-
-statistics_plots <- grid.arrange(grobs = statistics_plots, ncol = 2)
 ```
 
 
@@ -537,7 +590,7 @@ print(variables_miss_new)
 ![amount_contract](Distribution of due amount by contract status.png)
 ![amount_earnings](Distribution of paid amount according to total earnings.png)
 ![amount_product](Paid amount by product type.png)
-![amount_earnings](Paid amount by total earnings.png) 
+![amount_earnings](Paid amount by total earnings.svg) 
 
 
 ![dependence_delay_gender](Statistical dependence of delay on gender.png)
@@ -547,6 +600,21 @@ print(variables_miss_new)
 
 
 # Modeling
+
+Predict if the customer will be delayed in payment for 21+ days.
+
+Significantly better than random model AUC > 0.7. In case of highly unbalanced other metrics such as AUCPR etc.
+
+
+Predict if the customer will be delayed in payment for 140+ days.
+
+Significantly better than random model AUC > 0.7. In case of highly unbalanced other metrics such as AUCPR etc.
+
+
+
+Estimate average number of days delayed if the client would exceed the first action. 
+
+Better than simple average model by at least 30%.
 
 ## Prediction model (21+ days) 
 ## Prediction model (140+ days) 

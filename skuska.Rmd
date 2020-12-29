@@ -1,0 +1,84 @@
+---
+title: "Documentation"
+author: "Lenka Stastna, Ivana Stanova"
+date: "19 11 2020"
+output:
+  bookdown::html_document2:
+    fig_caption: yes
+    toc: true
+    toc_depth: 2
+    number_sections: true
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: true
+---
+Nejaký text z čoho pozostavala praca alebo ustredna tema? Zadanie? kto je sponzor? Kroky?
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, fig.width = 12, fig.height = 8)
+library(tidyverse)
+library(naniar)
+library(styler)
+library(GGally)
+library(skimr)
+library(ggcorrplot)
+library(gridExtra)
+```
+
+```{r load, eval=TRUE, include=FALSE, cache=TRUE}
+data_collection <- read.csv("..\\payment_dates_final.csv")
+data_collection <- data_collection %>%
+  mutate(due_date = as.Date(due_date, format = "%Y-%m-%d"))
+data_collection <- data_collection %>%
+  mutate(payment_date = as.Date(payment_date, format = "%Y-%m-%d"))
+data_collection <- data_collection %>%
+  mutate(product_type = as.factor(product_type))
+data_collection <- data_collection %>%
+  mutate(contract_status = as.factor(contract_status))
+data_collection <- data_collection %>%
+  mutate(business_discount = as.factor(business_discount))
+data_collection <- data_collection %>%
+  mutate(gender = as.factor(gender))
+data_collection <- data_collection %>%
+  mutate(marital_status = as.factor(marital_status))
+data_collection <- data_collection %>%
+  mutate(clients_phone = as.factor(clients_phone))
+data_collection <- data_collection %>%
+  mutate(client_mobile = as.factor(client_mobile))
+data_collection <- data_collection %>%
+  mutate(client_email = as.factor(client_email))
+data_collection <- data_collection %>%
+  mutate(total_earnings = factor(total_earnings, labels = c(
+    "level1", "level2", "level3", "level4",
+    "level5", "level6", "level7", "level8",
+    "level9", "level10", "not_declared"
+  )))
+data_collection <- data_collection %>%
+  mutate(living_area = as.factor(living_area))
+data_collection <- data_collection %>%
+  mutate(different_contact_area = as.factor(different_contact_area))
+data_collection <- data_collection %>%
+  mutate(kc_flag = as.factor(kc_flag))
+data_collection <- data_collection %>%
+  mutate(cf_val = as.numeric(cf_val))
+data_collection <- data_collection %>%
+  mutate(kzmz_flag = as.factor(kzmz_flag))
+data_collection <- data_collection %>%
+  mutate(due_amount = as.numeric(due_amount))
+data_collection <- data_collection %>%
+  mutate(paid_amount = as.numeric(payed_ammount))
+data_collection <- subset(data_collection, select = -payed_ammount)
+data_collection$delay <- difftime(data_collection$payment_date,
+  data_collection$due_date, tz,
+  units = "days"
+)
+```
+# Data Preparation
+## Data Understanding
+### Data Description Report
+
+The initial data was provided in a comma-separated values file, and was loaded and processed using the R programming language. Dataset used in this analysis contains 2 353 012 observations and 24 variables. Out of the 24 variables, 13 are of factor datatype, 9 are numeric and 2 are dates.
+All columns from the initial data were converted to the correct datype according to the data description file, which was provided. Column payed_ammount was replaced by column paid_amount. Column payment_date originally contained some blank fields, which were subsequently filled in as NA.
+
+|Column name|Description|Type|Values|
+|-----------|-----------|-----------|
+|contract_id|Unique identificator of the contract|Int|\{1,2,3,…,N}|
