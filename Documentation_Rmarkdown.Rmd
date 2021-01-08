@@ -1,6 +1,6 @@
 ---
 title: "Documentation of the Payment Delays Project"
-author: "Lenka Stastna, Ivana Stanova"
+author: "Ivana Stanova, Lenka Stastna"
 date: "1 1 2021"
 output:
   bookdown::html_document2:
@@ -16,11 +16,11 @@ Main topic of this data science project is to optimize the collection process. S
 
 First of all it was important to understand the collection process. Clients are paying certain amount due to the certain date. If the client delays his payment, certain collection procedure takes place because of the costs that rise for the company. There are three actions taking place under different conditions. If the payment is delayed for 21 - 69 days, first action is taken. Second action is taken if the delay is between 70 - 139 days and the third action is taken for delay greater than 140 days.
 
-Our goal was to create three models. First model predicts whether the customer will be delayed in payment for 21+ days. Second model predicts whether the customer will be delayed in payment for 140+ days. Lastly, third model should estimate average number of days delayed if the client would exceed the first action. All three models were defined the baseline accuracy.
+Our goal was to create three models. First model predicts whether the customer will be delayed in payment for 21+ days. Second model predicts whether the customer will be delayed in payment for 140+ days. Lastly, third model should estimate average number of days delayed if the client would exceed the first action. All three models were defined baseline accuracy, to which our models were compared.
 
-As one of the deliverables, the project documentation describes project flow. Project consisted of three major steps: Data preparation, Modeling, Evaluation. All of the phases are described in detail with visualized results and findings later in this document.
+As one of the deliverables, project documentation describes project flow. Project consisted of three major steps: Data preparation, Modeling, Evaluation. All of the phases are described in detail with visualized results and findings in this document.
 
-We chose to use R studio to prepare the date, create models and evaluate and RMarkdown was used to create documentation of the project.
+We chose to use R studio to prepare the data, create models and evaluate, RMarkdown was used to create documentation of the project.
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, fig.width = 12, fig.height = 8)
@@ -31,6 +31,7 @@ library(GGally)
 library(skimr)
 library(ggcorrplot)
 library(gridExtra)
+library(kableExtra)
 ```
 
 ```{r load, eval=TRUE, include=FALSE, cache=TRUE}
@@ -89,8 +90,8 @@ The initial data was provided in a comma-separated values file, and was loaded a
 All columns from the initial data were converted to the correct datype according to the data description file, which was provided. Column payed_ammount was replaced by column paid_amount. Column payment_date originally contained some blank fields, which were subsequently filled in as NA.
 
 |Column name|Description|Type|Values|
-|-----------|-----------|-----------|
-|contract_id|Unique identificator of the contract|Int|\{1,2,3,…,N}|
+|-----------|-----------|----|-------|
+|contract_id|Unique identificator of the contract|Int|{1,2,3,…,N}|
 |payment_order|Order of the payment|Int|{1,2,3,…}|
 |due_date|Payment deadline|Date|YY/MM/DD|
 |payment_date|Date of the payment|Date|YY/MM/DD|
@@ -110,7 +111,7 @@ All columns from the initial data were converted to the correct datype according
 |living_area|Region of the client home address|Factor|{1,2,3,…}|
 |different_contact_area|T/F if the client filled different home and contact address|Factor|{True, False}|
 |kc_flag|T/F if the client does not home local citizenship|Factor|{True, False}|
-|cf_val|If the special measure during the underwriting was applied|||
+|cf_val|If the special measure during the underwriting was applied|Numeric|{-N,...,N}|
 |kzmz_flag|T/F if the client filled in employer|Factor|{True, False}|
 |due_amount|Installment what should be payed|Numeric|(0,…)|
 |payed_amount|What was payed at a certain date|Numeric|(0,…)|
@@ -119,8 +120,17 @@ All columns from the initial data were converted to the correct datype according
 Frequency, relative frequency and relative cumulative frequency were computed for each category in all categorical variables. All frequency tables can be located in the "frequencies" list.
 
 ### Attribute correlations
-![correlogram](Correlogram.svg)
-```{r correlogram, eval=FALSE, echo=FALSE, fig.cap="\\label{fig:correlogram}Correlation plot"}
+We computed correlation coefficients between all possible pairs of numeric variables, see Figure \@ref(fig:correlogram), and discovered strong positive correlation between due amount and paid amount. This could be due to the fact that in the event that the installment has already been paid, the due amount and the paid amount would assume the same value. Correlation between the remaining pairs of numeric variables was either nonexistent or negligible.
+Then, the significance of correlation between due amount and paid amount was tested using Pearson's product moment correlation coefficient. The pair of attributes was found to be significantly correlated with a correlation coefficient  of 0.76 and p-value less than 2.2e-16.
+
+Relationship between categorical variables was tested using chi-squared test with the significance level of 0.05. All significantly correlated pairs of variables can be accessed in "categorical_rel" dataframe.
+Results can be seen on Figure \@ref(fig:corr).
+
+```{r corr, echo=FALSE, fig.cap="Correlation diagram", out.width = '100%'}
+knitr::include_graphics("Correlogram.svg")
+```
+
+```{r correlogram, eval=FALSE, echo=FALSE, fig.cap="Correlation plot"}
 correlogram <- data_collection %>%
   drop_na() %>%
   select_if(is.numeric) %>%
@@ -136,15 +146,11 @@ correlogram <- data_collection %>%
 print(correlogram)
 ```
 
-We computed correlation coefficients between all possible pairs of numeric variables, see Figure \@ref(fig:correlogram), and discovered strong positive correlation between due amount and paid amount. This could be due to the fact that in the event that the installment has already been paid, the due amount and the paid amount would assume the same value. Correlation between the remaining pairs of numeric variables was either nonexistent or negligible.
-Then, the significance of correlation between due amount and paid amount was tested using Pearson's product moment correlation coefficient. The pair of attributes was found to be significantly correlated with a correlation coefficient  of 0.76 and p-value less than 2.2e-16.
-
-Relationship between categorical variables was tested using chi-squared test with the significance level of 0.05. All significantly correlated pairs of variables can be accessed in "categorical_rel" dataframe.
 
 #### Basic statistics
-Basic statistics computed for numeric variables can be located in Table \@ref{tab:statistics}. Distribution of numeric and categorical variables was visualized using boxplots, density plots and histograms, see in Attachments, Figure \@ref(fig:boxplots) and Figure \@ref(fig:density).
+Basic statistics computed for numeric variables can be located in Table \@ref(tab:statistics). Distribution of numeric and categorical variables was visualized using boxplots, density plots and histograms, see in Attachments,  Figure \@ref(fig:density) and Figure \@ref(fig:boxplots). NEZOBRAZUJE TAB:
 
-```{r statistics, echo=FALSE, results='asis', tab.cap="\\label{tab:statistics}Statistics summary."}
+```{r statistics, echo=FALSE, results='asis', tab.cap="Statistics summary.", eval=FALSE}
 # Summary for each attribute
 headofTable <- c(
   "Num. of Children", "Num. Other Product", "Year of Birth",
@@ -203,23 +209,69 @@ summaryData <- distinct(data.frame(headofTable, EX, VarX, Median, Q1, Q3, Min,
 summaryData
 ```
 
+
+
 ## Data Exploration Report
 NIECO HODIT
 
 
 ## Data Quality Report
 ### Data coverage
-Next step consited of the data coverage analysis. As an example, we have chosen a couple of plots, that indicate interesting data distribution. 
+Next step consisted of the data coverage analysis. 
+
+As an example, we have chosen a couple of plots, that indicate interesting data distribution. 
 We for example found out, that clients mostly order the product type 1, contracts are mostly in status number 1 or that most of the payments have a discount.
 We also discovered, that the marital status of the clients is mostly number 3 and they have most frequently no children. Clients also very frequently do not provide information about their earnings and they ordered usually 1 other product.
 
 All the mentioned findings can be seen on visualizations on Figure \@ref(fig:distribution). All the data coverage visualizations are available in the Attachments.
 
-```{r distribution, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE}
+```{r distribution, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE, fig.cap="Distribution plots."}
 distribution_plots <- list()
 distribution_plots[[1]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(number_of_children)) +
+  ggplot(aes(product_type)) +
+  geom_bar(fill = "grey70") +
+  labs(
+    title = "Distribution of product_type",
+    x = "Product type",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+
+distribution_plots[[2]] <- data_collection %>%
+  ggplot(aes(contract_status)) +
+  geom_bar(fill = "grey70") +
+  labs(
+    title = "Distribution of contract_status",
+    x = "Contract status",
+    y = "Count"
+  ) +
+  theme_minimal()
+  
+
+distribution_plots[[3]] <- data_collection %>%
+  ggplot(aes(business_discount)) +
+  geom_bar(fill = "grey70") +
+  labs(
+    title = "Distribution of business_discount",
+    x = "Business discount",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+distribution_plots[[4]] <- data_collection %>%
+  ggplot(aes(marital_status)) +
+  geom_bar(fill = "grey70") +
+  labs(
+    title = "Distribution of marital_status",
+    x = "Marital status",
+    y = "Count"
+  ) +
+  theme_minimal()
+  
+
+distribution_plots[[5]] <- data_collection %>%
+    ggplot(aes(number_of_children)) +
   geom_bar(fill = "grey70") +
   geom_vline(
     xintercept = mean(data_collection$number_of_children),
@@ -245,7 +297,27 @@ distribution_plots[[1]] <- data_collection %>%
   ) +
   theme_minimal()
 
-distribution_plots[[2]] <- data_collection %>%
+distribution_plots[[6]] <- data_collection %>%
+  ggplot(aes(total_earnings)) +
+  geom_bar(fill = "grey70") +
+  labs(
+    title = "Distribution of total_earnings",
+    x = "Total earnings",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+distribution_plots[[7]] <- data_collection %>%
+  ggplot(aes(product_type)) +
+  geom_bar(fill = "grey70") +
+  labs(
+    title = "Distribution of product_type",
+    x = "Product type",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+distribution_plots[[8]] <- data_collection %>%
   drop_na() %>%
   ggplot(aes(number_other_product)) +
   geom_bar(fill = "grey70") +
@@ -273,61 +345,6 @@ distribution_plots[[2]] <- data_collection %>%
   ) +
   theme_minimal()
 
-distribution_plots[[3]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(product_type)) +
-  geom_bar(fill = "grey70") +
-  labs(
-    title = "Distribution of product_type",
-    x = "Product type",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-distribution_plots[[4]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(business_discount)) +
-  geom_bar(fill = "grey70") +
-  labs(
-    title = "Distribution of business_discount",
-    x = "Business discount",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-distribution_plots[[5]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(total_earnings)) +
-  geom_bar(fill = "grey70") +
-  labs(
-    title = "Distribution of total_earnings",
-    x = "Total earnings",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-distribution_plots[[6]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(product_type)) +
-  geom_bar(fill = "grey70") +
-  labs(
-    title = "Distribution of product_type",
-    x = "Product type",
-    y = "Count"
-  ) +
-  theme_minimal()
-
-distribution_plots[[7]] <- data_collection %>%
-  drop_na() %>%
-  ggplot(aes(contract_status)) +
-  geom_bar(fill = "grey70") +
-  labs(
-    title = "Distribution of contract_status",
-    x = "Contract status",
-    y = "Count"
-  ) +
-  theme_minimal()
-
 distribution_plots <- grid.arrange(grobs = distribution_plots, ncol = 2)
 
 ```
@@ -335,10 +352,10 @@ distribution_plots <- grid.arrange(grobs = distribution_plots, ncol = 2)
 
 ### Missing values
 Exploring the NA values in the dataset, we found out, that 4 attributes had 
-almost same percentage of missing values, as can be seen on the statistics on Figure \@ref(fig:Missing_stat). 
+almost same percentage of missing values, as can be seen on the statistics ???REFERENCIA INAK???. 
 Attributes kc_flag, living_area, cf_val and different_contact_area have the most missing values, almost 20 %, whereas payment_order has around 3,5 % and payment_date and delay have the same percentage, almost 0,5 %.
 
-Using a different visualization, that can be seen on Figure \@ref(fig:Missing_complex), 
+Using a different visualization, that can be seen on Figure\@ref(fig:Missing-complex) or Figure\@ref(fig:missing-H), 
 we discovered, that the four attributes with the highest percentage are 
 not missing at random but almost all at the same time.
 
@@ -352,16 +369,21 @@ Secondly, we dealt with the NA values in payment_order and payment_date.
 Since it was only less then 4 % of the dataset, and it was not possible to
 substitute the values, we decided to delete the rows.
 
-```{r Missing_stat, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:Missing_stat}Basic statistics of the NA values in the data."}
+```{r Missing-stat, echo=FALSE}
 variables_miss <- miss_var_summary(data_collection)
 print(variables_miss)
 ```
 
-```{r Missing_complex, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:Missing_complex}Distribution of missing values"}
+```{r Missing-complex, fig.cap="Distribution of missing values.", echo=FALSE}
 gg_miss_upset(data_collection)
 ```
 
-![missing_values_plot](missing_values_plot.png)
+Results can be seen on Figure \@ref(fig:missing-H).
+
+```{r missing-H, echo=FALSE, fig.cap="Missing values distribution", out.width = '100%'}
+knitr::include_graphics("missing_values_plot.png")
+```
+
 
 ## Feature engineering
 
@@ -413,8 +435,8 @@ histPercent <- function(x, ...) {
 }
 ```
 
-First of all we focused on attribute delay. Since it is probably the most important attribute of the nexly created, we analysed its distribution, distribution of delay on log scale DOPLNIT CO SME NASLI.
-```{r stat_new_delay, echo=FALSE, warning=FALSE, eval= TRUE, message=FALSE, fig.cap="\\label{fig:stat_new_delay}Basic statistics of the added attribute delay."}
+First of all we focused on attribute delay. Since it is probably the most important attribute of the newly created, we analyzed its distribution, distribution of delay on log scale DOPLNIT CO SME NASLI. 
+```{r stat_new_delay, echo=FALSE, eval= TRUE, message=FALSE, warning=FALSE, fig.cap="Basic statistics of the added attribute delay."}
 delay_plots <- list()
  
 delay_plots[[1]] <- data_prepared %>%
@@ -443,6 +465,8 @@ delay_plots[[3]] <-  data_prepared %>%
     y = "Count"
   ) +
   theme_minimal()
+
+
 
 delay_plots[[4]] <- data_prepared %>%
   drop_na() %>%
@@ -473,11 +497,22 @@ delay_plots[[4]] <- data_prepared %>%
   ) +
   theme_minimal()
 
+delay_plots[[5]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = delay)) +
+  scale_x_discrete() +
+  labs(title = "Delay")
+
 delay_plots
 ```
-![delay_boxplot](delay_boxplot.png)
-We also computed some basic statistics for the other added attributes. DOPLNIT CO SME NASLI
-```{r stat_new, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:stat_new}Basic statistics of the added attributes.."}
+
+
+  
+  
+We also computed some basic statistics for the other added attributes. DOPLNIT CO SME NASLI.
+Results can be seen on \@ref(fig:stat_new)
+```{r stat_new, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="Basic statistics of the added attributes.."}
 statistics_plots <- list()
 
 statistics_plots[[1]] <-
