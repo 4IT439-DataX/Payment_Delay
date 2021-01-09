@@ -7,7 +7,7 @@ if (!require(styler)) install.packages("styler")
 if (!require(GGally)) install.packages("GGally")
 if (!require(skimr)) install.packages("skimr")
 if (!require(ggcorrplot)) install.packages("ggcorrplot")
-if (!require(gridExtra)) installed.packages("gridExtra")
+if (!require(gridExtra)) install.packages("gridExtra")
 
 
 library(tidyverse)
@@ -832,7 +832,7 @@ coverage[[1]] <- ggplot(data = data_collection, aes(x = product_type)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
 
-# contract status mostly 1, then 5,6,8,7 some 2,3,4...What does it mean??
+# contract status mostly 1, then 5,6,8,7 some 2,3,4
 coverage[[2]] <- ggplot(data = data_collection, aes(x = contract_status)) +
   geom_bar() +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
@@ -1033,79 +1033,82 @@ data_collection %>%
   ) +
   theme_minimal()
 
-# Dependence of paid amount on gender, product type and business discount
+# Dependence of delay on gender, product type and business discount
 data_collection %>%
   group_by(gender, product_type, business_discount) %>%
-  summarise(paidAmount = mean(paid_amount)) %>%
-  spread(gender, paidAmount)
+  summarise(Delay = mean(delay)) %>%
+  spread(gender, Delay)
 
 data_collection %>%
   group_by(gender, number_of_children) %>%
-  summarise(delay = mean(delay)) %>%
-  spread(gender, delay)
+  summarise(Delay = mean(delay)) %>%
+  spread(gender, Delay)
 
 data_collection %>%
   drop_na() %>%
   ggplot() +
-  geom_boxplot(aes(gender, paid_amount, color = product_type)) +
+  geom_boxplot(aes(gender, delay, color = product_type)) +
   facet_grid(~business_discount) +
   labs(
-    title = "Statistical dependence of paid amount on gender, product type and business discount",
+    title = "Dependence of delay on gender, product type and business discount",
     x = "Gender",
-    y = "Paid amount"
+    y = "Delay"
   ) +
-  theme_minimal()
+  theme_minimal() +
+  coord_cartesian(ylim = c(-60,60))
 
-# Distribution of paid amount according to total earnings
+# Distribution of delay according to total earnings
 data_collection %>%
   drop_na() %>%
-  ggplot(aes(paid_amount, color = total_earnings)) +
+  ggplot(aes(delay, color = total_earnings)) +
   geom_density() +
   geom_vline(
-    xintercept = mean(data_collection$paid_amount),
+    xintercept = mean(data_collection$delay),
     linetype = "dashed", size = 1
   ) +
   labs(
-    title = "Distribution of paid amount by total earnings",
-    x = "Paid amount",
+    title = "Distribution of delay by total earnings",
+    x = "Delay",
     y = "Count"
   ) +
+  coord_cartesian(xlim = c(-50,50)) +
   theme_minimal()
 
-# Boxplot of paid amount according to product type
+# Boxplot of delay according to product type
 data_collection %>%
   drop_na() %>%
   ggplot(aes(
-    x = product_type, y = paid_amount,
+    x = product_type, y = delay,
     color = product_type
   )) +
   geom_boxplot() +
   geom_hline(
-    yintercept = mean(data_collection$paid_amount, na.rm = TRUE),
+    yintercept = mean(data_collection$delay, na.rm = TRUE),
     linetype = "dashed", size = 1
   ) +
   labs(
-    title = "Paid amount by product type",
+    title = "Delay by product type",
     x = "Product type",
-    y = "Paid amount"
+    y = "Delay"
   ) +
   theme_minimal()
 
-# Density plot of due amount according to contract status
+# Density plot of delay according to contract status
 data_collection %>%
   drop_na() %>%
-  ggplot(aes(due_amount, color = contract_status)) +
+  ggplot(aes(delay, color = contract_status)) +
   geom_density() +
   facet_grid(contract_status ~ .) +
   geom_vline(
-    xintercept = mean(data_collection$due_amount, na.rm = TRUE),
+    xintercept = mean(data_collection$delay, na.rm = TRUE),
     linetype = "dashed", size = 1
   ) +
   labs(
-    title = "Distribution of due amount by contract status",
-    x = "Due amount",
-    y = "Count"
+    title = "Distribution of delay by contract status",
+    x = "Delay",
+    y = "%"
   ) +
+  coord_cartesian(ylim = c(0,0.06), xlim = c(-100,100)) +
   theme_minimal()
 
 # Verify data quality ==========================================================
