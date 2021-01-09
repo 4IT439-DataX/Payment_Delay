@@ -138,8 +138,9 @@ data_collection <- data_collection %>%
   mutate(delay = as.numeric(delay))
 
 # Summary statistics of the data
-summary <- summary(data_collection)
+summary_p <- summary(data_collection)
 detailed_statistics <- skim(data_collection)
+
 
 # Analyze correlations between variables #######################################
 # Compute a matrix of correlation p-values and plot the correlation matrix
@@ -1313,4 +1314,9 @@ data_prepared <- data_prepared %>%
   mutate(delay_21_y = as.factor(delay_21_y))
 
 ## Exploratory analysis
+
+
+
+
+
 

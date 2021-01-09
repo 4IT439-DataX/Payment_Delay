@@ -30,7 +30,7 @@ As one of the deliverables, project documentation describes project flow. Projec
 We chose to use R studio to prepare the data, create models and evaluate, RMarkdown was used to create documentation of the project.
 
 ```{r load, eval=TRUE, include=FALSE, cache=TRUE}
-path_to_data <- "D:/Dokumenty/ŠKOLA/4IT439 Data-X – aplikované analytické datové modely v reálných úlohách/Semestrálka/payment_dates_final.csv"
+path_to_data <- "..\\payment_dates_final.csv"
 data_collection <- read.csv(path_to_data)
 data_collection <- data_collection %>%
   mutate(due_date = as.Date(due_date, format = "%Y-%m-%d"))
@@ -82,7 +82,8 @@ data_collection$delay <- difftime(data_collection$payment_date,
 ## Data Understanding
 ### Data Description Report
 
-The initial data was provided in a comma-separated values file, and was loaded and processed using the R programming language. Dataset used in this analysis contains 2 353 012 observations and 24 variables. Out of the 24 variables, 13 are of factor datatype, 9 are numeric and 2 are dates. All columns from the initial dataset were converted to the correct datype according to the data description file, which was provided. Column payed_ammount was replaced by column paid_amount. Column payment_date originally contained some blank fields, which were subsequently filled in as NA.
+The initial data was provided in a comma-separated values file, and was loaded and processed using the R programming language. Dataset used in this analysis contains 2 353 012 observations and 24 variables. Out of the 24 variables, 13 are of factor datatype, 9 are numeric and 2 are dates. All columns from the initial dataset were converted to the correct datype according to the data description file, which was provided. Column *payed_ammount* was replaced by column *paid_amount*. Column *payment_date* originally contained some blank fields, which were subsequently filled in as NA.
+We also created a new feature *delay* at the beginning of our work as the target variable. Variable stands for the difference between "payment_date" and "due_date".
 
 |Column name|Description|Type|Values|
 |-----------|-----------|----|-------|
@@ -110,9 +111,10 @@ The initial data was provided in a comma-separated values file, and was loaded a
 |kzmz_flag|T/F if the client filled in employer|Factor|{True, False}|
 |due_amount|Installment what should be payed|Numeric|(0,…)|
 |payed_amount|What was payed at a certain date|Numeric|(0,…)|
+|delay|Difference between payment_date and due_date|Int|{-N,...,N}|
 
 ### Attribute correlations
-We computed correlation coefficients between all possible pairs of numeric variables, see Figure \@ref(fig:correlogram), and discovered strong positive correlation between due amount and paid amount. This could be due to the fact that in the event that the installment has already been paid, the due amount and the paid amount would assume the same value. Correlation between the remaining pairs of numeric variables was either nonexistent or negligible.  
+We computed correlation coefficients between all possible pairs of numeric variables, see Figure \@ref(fig:correlogram), and discovered strong positive correlation between *due amount* and *paid amount*. This could be due to the fact that in the event that the installment has already been paid, the due amount and the paid amount would assume the same value. Correlation between the remaining pairs of numeric variables was either nonexistent or negligible.  
 Then, the significance of correlation between due amount and paid amount was tested using Pearson's product moment correlation coefficient. The pair of attributes was found to be significantly correlated with a correlation coefficient  of 0.76 and p-value less than 2.2e-16.  
 Relationship between categorical variables was tested using chi-squared test with the significance level of 0.05. All significantly correlated pairs of variables can be accessed in "categorical_rel" dataframe.
 
@@ -128,14 +130,16 @@ Next step consisted of the data coverage and plausibility analysis.
 As an example, we have chosen a couple of plots, that indicate interesting data distribution.  
 We, for example, found out that clients mostly order the product type 1, contracts are mostly in status 5 or that most of the payments have a discount.  
 We also discovered, that the marital status of the clients is mostly number 3 and they have most frequently no children. Clients also very frequently do not provide information about their earnings and they usually ordered 1 other product.  
-All the mentioned findings can be seen on visualizations in Figure \@ref(fig:distribution). All the data coverage visualizations are available in Figures.  
+Although the distribution of values across factor variables is not even, we do not think, the findings 
+have to be analyzed closely.
+All the mentioned findings can be seen on visualizations in Figure \@ref(fig:distribution). 
 
 ### Missing values
 Exploring the NA values in the dataset, we found out, that 4 attributes had 
-almost the same percentage of missing values, as can be seen in the statistics \@ref(tab:Missing-stat) ???REFERENCIA INAK???.  
+almost the same percentage of missing values, as can be seen in the statistics \@ref(tab:Missing-stat).  
 Attributes kc_flag, living_area, cf_val and different_contact_area have the most missing values, almost 20 %, whereas payment_order has around 3,5 % and payment_date and delay have the same percentage, almost 0,5 %.  
 
-Using a different visualization, that can be seen in Figure\@ref(fig:Missing-complex) or Figure\@ref(fig:missing-H), we discovered, that the four attributes with the highest percentage are 
+Using a different visualization, that can be seen in Figure \@ref(fig:Missing-complex) or Figure \@ref(fig:missing-H), we discovered, that the four attributes with the highest percentage are 
 not missing at random but almost all at the same time.  
 
 We found out, that contract_id together with payment_order were not creating a unique key of the data payment, but one payment was divided into multiple parts, which was also causing problem with NA values in the four attributes. Data in the four attributes were not copied into other parts of a payment, but were present in just the first payment part.  
@@ -143,34 +147,35 @@ We decided to unify the payment parts into only one payment by summarizing the p
 
 Secondly, we dealt with the NA values in payment_order and payment_date. Since it was only less then 4 % of the dataset, and it was not possible to substitute the values, we decided to delete the rows.  
 
-Results can be seen in Figure \@ref(fig:missing-H).  
-
 ## Feature engineering
 
 ```{r load_new_data, eval=TRUE, include=FALSE, cache=TRUE}
-data_prepared <- read.delim("D:/Dokumenty/ŠKOLA/4IT439 Data-X – aplikované analytické datové modely v reálných úlohách/Semestrálka/Data/data_collection_prepared.txt", header = TRUE, sep = ";", dec = ".")
+data_prepared <- read.delim("..\\data_collection_prepared_new.txt", header = TRUE, sep = ";", dec = ".")
 data_prepared <- data_prepared %>%
   mutate(delay_140_y = as.factor(delay_140_y))
 data_prepared <- data_prepared %>%
   mutate(delay_21_y = as.factor(delay_21_y))
 ```
 
-We decided to add new features to create higher-accuracy models. First of all, we computed a numerical feature "delay" counting the difference between payment_date and due_date.  
+We decided to add new features to create higher-accuracy models. As already have been mentioned, we firstly computed a numeric feature *delay* counting the difference of days between payment_date and due_date. We selected this variable as our target.  
 
 Since we are creating two classification models deciding whether a new payment will be delayed
-for more than 21 days or more than 140 days, we created 2 new binary features "delay_21_y" and "delay_140_y".  
+for more than 21 days or more than 140 days, we created 2 new factor features *delay_21_y* and *delay_140_y*. Variables set 1 if the payment delay is greater than 21 or greater than 140 days.
 
-We also created a new numerical feature "delay_indiv" counting the mean delay for the whole client´s history. We also computed 2 new numerical features, "delay_indiv_21" and "delay_indiv_140" counting cumulative number of delayed payments (21, 140 days) by one contract.  
+We also created a new numerical feature *delay_indiv* counting the mean delay for the whole client´s history. We also computed 2 new numerical features, *delay_indiv_21* and *delay_indiv_140* counting number of delayed payments (21, 140 days) for the whole client's history.
 
-Lastly, numerical features "mean_delay_1m" ,"mean_delay_3m", "mean_delay_6m", "mean_delay_12m" are computing the mean delay for 1/3/6/12 months for each contract.  
+Lastly, numerical features *mean_delay_1m* ,*mean_delay_3m*, *mean_delay_6m*, *mean_delay_12m* are computing the mean delay for the last 1/3/6/12 months in the client´s history.  
 
 ## Exploratory analysis of the new features
+Adding new created attributes, we started to work with 34 variables. We created
+2 factor attributes and 8 numerical attributes.
+
 ### Data description report
+
 |Column name|Description|Type|Values|
-|-----------|-----------|-----------|
-|delay|Difference between payment_date and due_date|Int|"{-N,...,N}|
+|-----------|-----------|----|-------|
 |delay_21_y|T/F if the delay is more than 21 days|Factor|{True, False}|
-|delay_140_y|T/F if the delay is more than 140 days|Int|Factor|{True, False}|
+|delay_140_y|T/F if the delay is more than 140 days|Factor|{True, False}|
 |delay_indiv|Mean delay for the whole client's history|Int|{-N,...,N}|
 |delay_indiv_21|Cumulative sum of payments delayed for more than 21 days by contract|Int|{1,2,3,…,N}|
 |delay_indiv_140|Cumulative sum of the payments delayed for more than 140 days by contract |Int|{1,2,3,…,N}|
@@ -180,88 +185,37 @@ Lastly, numerical features "mean_delay_1m" ,"mean_delay_3m", "mean_delay_6m", "m
 |mean_delay_12m|Average payment delay for the last 12 months|Int|{-N,...,N}|
 
 ### Basic statistics
-We computed basic statistics for each new attribute. All the visualizations can be seen in Figure \@ref(fig:stat-newdelay).  
-
-```{r help, echo=FALSE, warning=FALSE, message=FALSE, eval = TRUE, cache=TRUE}
-histPercent <- function(x, ...) {
-  H <- hist(data_prepared$delay, plot = FALSE)
-  H$density <- with(H, 100 * density * diff(breaks)[1])
-  labs <- paste(round(H$density), "%", sep="")
-  plot(H, freq = FALSE, labels = labs, ylim=c(0, 1.08*max(H$density)),...)
-}
-```
-
-First of all we focused on attribute delay. Since it is probably the most important attribute of the newly created, we analyzed its distribution, distribution of delay on log scale DOPLNIT CO SME NASLI. 
-
-
+ 
+Basic statistics computed for new numeric variables can be located in Table \@ref(tab:Statss).
+First of all we focused on attribute *delay*, as our target attribute.
+On Figure \@ref(fig:statnewdelay) 4 different plots visualizing delay variable. As we can see, the values fluctuate mostly around 0. Although values range from -1673 to 2787, its median is 17 and mean 22.13. 
   
   
-We also computed some basic statistics for the other added attributes. DOPLNIT CO SME NASLI.
-Results can be seen in \@ref(fig:stat-new).
+We also computed some basic statistics for the other added attributes. 
+Results can be seen on Figure \@ref(fig:statnew), where we visualized the distribution of delay_indiv and mean delay variables. PRIEMER????
 
-![delay_21](payment_delay_21.png)
-![delay_140](payment_delay_140.png)
-```{r help_new, echo=FALSE, warning=FALSE, message=FALSE, eval=FALSE}
-statistics_plots[[8]] <- ggplot(data = data_prepared, aes(x = delay_21_y)) +
-  geom_bar(aes(y = (..count..)/sum(..count..)))  + scale_y_continuous(labels=scales::percent) +
-  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "Count", vjust = -0.25) +
-  labs(title = "Payment delay greater than 21 days", y = "Percent", x = "Delay greater than 21 days")
+On Figure \@ref(fig:statIndiv) we can see the distribution of variable *delay_indiv_21* and *delay_indiv_140*.We can see, that delay greater than 140 is present only in a few payments, whereas delay greater than 21 days is more common.
 
-statistics_plots[[9]] <- ggplot(data = data_prepared, aes(x = delay_140_y)) +
-  geom_bar(aes(y = (..count..)/sum(..count..)))  + scale_y_continuous(labels=scales::percent) +
-  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "Count", vjust = -0.25) +
-  labs(title = "Payment delay greater than 140 days", y = "Percent", x = "Delay greater than 140 days")
-```
+Lastly, we also analyzed factor variables, *delay_21_y* and *delay_140_y*. As we can see on Figure \@ref(fig:helpnew), almost half (48,2 %) of all the payments were delayed for more than 21 days.
 
 
 ### Missing values
-As can be seen in Figure \@ref(tab:miss-statnew), newly-created features also contain NA values. The highest percentage of missing values has attribute mean_delay_12m, almost 55 %. Together with mean_delay_6m, mean_delay_3m and mean_delay_1m, they are the only new attributes holding NA attributes.  
-
-It is not surprising, that these attributes have the highest percentage of NAs, since they compute results only every 12/6/3/1 months.  
-
-We decided to replace the NA values by 0, so they can be later used in the modeling part.  
-
-## Advanced statistics
-
-```{r delay_contract, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:delay_contract}Distribution of delay by contract status."}
-data_collection %>%
-  drop_na() %>%
-  ggplot(aes(delay, color = contract_status)) +
-  geom_density() +
-  facet_grid(contract_status ~ .) +
-  geom_vline(
-    xintercept = mean(data_collection$delay, na.rm = TRUE),
-    linetype = "dashed", size = 1
-  ) +
-  labs(
-    title = "Distribution of delay by contract status",
-    x = "Delay",
-    y = "%"
-  ) +
-  coord_cartesian(ylim = c(0,0.06), xlim = c(-100,100)) +
-  theme_minimal()
-```
+As can be seen in Figure \@ref(tab:miss-statnew), newly-created features also contain NA values. The highest percentage of missing values has attribute *mean_delay_12m*, almost 55 %. Together with *mean_delay_6m*, *mean_delay_3m* and *mean_delay_1m*, they are the only new attributes holding NA attributes.  
+It is not surprising, that these attributes have the highest percentage of NAs, since they compute results only every 12/6/3/1 months. We decided to replace the NA values by 0, so they can be later used in the modeling part. We discussed, that this step should not influence the data or the models.   
 
 # Modeling
-
+## Prediction model (21+ days) 
 Predict if the customer will be delayed in payment for 21+ days.
-
 Significantly better than random model AUC > 0.7. In case of highly unbalanced other metrics such as AUCPR etc.
 
-
+## Prediction model (140+ days) 
 Predict if the customer will be delayed in payment for 140+ days.
-
 Significantly better than random model AUC > 0.7. In case of highly unbalanced other metrics such as AUCPR etc.
 
-
+## Estimation of the expected number of days of delay when the client triggers first action
 
 Estimate average number of days delayed if the client would exceed the first action. 
-
 Better than simple average model by at least 30%.
-
-## Prediction model (21+ days) 
-## Prediction model (140+ days) 
-## Estimation of the expected number of days of delay when the client triggers first action 
 # Conclusion
 # Discussion
 
@@ -720,29 +674,13 @@ distribution_plots[[4]] <- data_collection %>%
 distribution_plots[[5]] <- data_collection %>%
     ggplot(aes(number_of_children)) +
   geom_bar(fill = "grey70") +
-  geom_vline(
-    xintercept = mean(data_collection$number_of_children),
-    color = "blue", linetype = "dotted", size = 1
-  ) +
-  geom_vline(
-    xintercept = median(data_collection$number_of_children),
-    color = "red", linetype = "dotted", size = 1
-  ) +
   labs(
     title = "Distribution of number_of_children",
     x = "Number of children",
     y = "Count"
   ) +
-  scale_x_continuous(breaks = seq(from = 0, to = 10, by = 1)) +
-  annotate(
-    geom = "text", x = mean(data_collection$number_of_children),
-    y = 500000, label = "mean", color = "blue"
-  ) +
-  annotate(
-    geom = "text", x = median(data_collection$number_of_children),
-    y = 1000000, label = "median", color = "red"
-  ) +
   theme_minimal()
+
 distribution_plots[[6]] <- data_collection %>%
   ggplot(aes(total_earnings)) +
   geom_bar(fill = "grey70") +
@@ -752,6 +690,7 @@ distribution_plots[[6]] <- data_collection %>%
     y = "Count"
   ) +
   theme_minimal()
+
 distribution_plots[[7]] <- data_collection %>%
   ggplot(aes(product_type)) +
   geom_bar(fill = "grey70") +
@@ -761,71 +700,55 @@ distribution_plots[[7]] <- data_collection %>%
     y = "Count"
   ) +
   theme_minimal()
+
 distribution_plots[[8]] <- data_collection %>%
   drop_na() %>%
   ggplot(aes(number_other_product)) +
   geom_bar(fill = "grey70") +
-  geom_vline(
-    xintercept = mean(data_collection$number_other_product),
-    color = "blue", linetype = "dotted", size = 1
-  ) +
-  geom_vline(
-    xintercept = median(data_collection$number_other_product),
-    color = "red", linetype = "dotted", size = 1
-  ) +
   labs(
     title = "Distribution of number_other_product",
     x = "Number other products",
     y = "Count"
   ) +
-  scale_x_continuous(breaks = seq(from = 1, to = 13, by = 1)) +
-  annotate(
-    geom = "text", x = mean(data_collection$number_other_product),
-    y = 250000, label = "mean", color = "blue"
-  ) +
-  annotate(
-    geom = "text", x = median(data_collection$number_other_product),
-    y = 600000, label = "median", color = "red"
-  ) +
   theme_minimal()
 distribution_plots <- grid.arrange(grobs = distribution_plots, ncol = 2)
 ```
 
-```{r Missing-complex, fig.cap="\\label{fig:Missing-complex}Distribution of missing values.", echo=FALSE}
+```{r Missing-complex, fig.cap="\\label{fig:Missing-complex}Distribution of missing values.", echo=FALSE, out.width = '90%'}
 gg_miss_upset(data_collection)
 ```
 
-```{r missing-H, echo=FALSE, fig.cap="\\label{fig:missing-H}Missing values distribution", out.width = '100%'}
+```{r missing-H, echo=FALSE, fig.cap="\\label{fig:missing-H}Distribution of missing values", out.width = '90%'}
 knitr::include_graphics("missing_values_plot.png")
 ```
 
-```{r stat-newdelay, echo=FALSE, eval= TRUE, message=FALSE, warning=FALSE, fig.cap="\\label{fig:stat-newdelay}Basic statistics of the added attribute delay."}
+```{r statnewdelay, echo=FALSE, eval= TRUE, message=FALSE, warning=FALSE, fig.cap="\\label{fig:stat-newdelay}Basic statistics of the added attribute delay."}
 delay_plots <- list()
 delay_plots[[1]] <- data_prepared %>%
   drop_na() %>%
   ggplot(aes(x = delay)) + 
   geom_histogram() + 
-  xlim(-2000, 3000) +
+  xlim(-1000, 1000) +
   labs(
     title = "Distribution of delay",
     x = "Delay",
     y = "Count"
   ) +
   theme_minimal()
-delay_plots[[2]] <- histPercent(pdata$y, col="gray", xlab="Delay in days", main="Distribution of delay", xaxp = c(-2000,3000,10))
-delay_plots[[3]] <-  data_prepared %>%
+
+delay_plots[[2]] <-  data_prepared %>%
   drop_na() %>%
   ggplot(aes(x = delay)) + 
   geom_histogram() + 
   scale_y_log10() + 
-  xlim(-2000, 3000) +
+  xlim(-1500, 2500) +
   labs(
     title = "Distribution of delay on logarithmic scale",
     x = "Delay",
     y = "Count"
   ) +
   theme_minimal()
-delay_plots[[4]] <- data_prepared %>%
+delay_plots[[3]] <- data_prepared %>%
   drop_na() %>%
   ggplot(aes(delay)) +
   geom_density() +
@@ -839,6 +762,7 @@ delay_plots[[4]] <- data_prepared %>%
     color = "red",
     linetype = "dotted", size = 1
   ) +
+    xlim(-400, 400) +
   labs(
     title = "Distribution of delay",
     x = "Delay",
@@ -854,79 +778,169 @@ delay_plots[[4]] <- data_prepared %>%
   ) +
   theme_minimal()
 
-delay_plots[[5]] <- data_collection %>%
+delay_plots[[4]] <- data_collection %>%
   drop_na() %>%
   ggplot() +
   geom_boxplot(aes(y = delay)) +
   scale_x_discrete() +
-  labs(title = "Delay")
-delay_plots
+  labs(title = "Delay") +
+  theme_minimal()
+delay_plots <- grid.arrange(grobs = delay_plots, ncol = 2)
 ```
 
-```{r stat-new, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:stat-new}Basic statistics of the added attributes.."}
+```{r statnew, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:stat-new}Basic statistics of the added attributes."}
 statistics_plots <- list()
 
 statistics_plots[[1]] <- data_prepared %>%
   drop_na() %>%
   ggplot(aes(delay_indiv)) +
   geom_density() +
+  geom_vline(
+    xintercept = mean(data_prepared$delay_indiv, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_prepared$delay_indiv, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
   labs(
-    title = "Distribution of delay_indiv UPRAVENA OS, NECHAME TAKTO??",
-    x = "Delay_indiv",
+    title = "Distribution of delay_indiv",
+    x = "Delay individual",
     y = "Count"
   ) +
-  xlim(-500, 500) +
+  annotate(
+    geom = "text", x = mean(data_prepared$delay_indiv, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_prepared$delay_indiv, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  xlim(-150, 150) +
   theme_minimal()
 
 statistics_plots[[2]] <- data_prepared %>%
   drop_na() %>%
   ggplot(aes(mean_delay_1m)) +
   geom_density() +
-  labs(
-    title = "1 m mean delay distribution",
-    x = "Mean delay 1 month",
-    y = "Count"
+  geom_vline(
+    xintercept = mean(data_prepared$mean_delay_1m, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
   ) +
+  geom_vline(
+    xintercept = median(data_prepared$mean_delay_1m, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of mean_delay_1m",
+    x = "Mean delay of 1 month",
+    y = "Count"
+ ) +
+  annotate(
+    geom = "text", x = mean(data_prepared$mean_delay_1m, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_prepared$mean_delay_1m, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  xlim(-150, 150) +
   theme_minimal()
 
 statistics_plots[[3]] <- data_prepared %>%
   drop_na() %>%
   ggplot(aes(mean_delay_3m)) +
   geom_density() +
-  labs(
-    title = "3 m mean delay distribution",
-    x = "Mean delay 3 months",
-    y = "Count"
+  geom_vline(
+    xintercept = mean(data_prepared$mean_delay_3m, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
   ) +
+  geom_vline(
+    xintercept = median(data_prepared$mean_delay_3m, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of mean_delay_3m",
+    x = "Mean delay of 3 months",
+    y = "Count"
+ ) +
+  annotate(
+    geom = "text", x = mean(data_prepared$mean_delay_3m, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_prepared$mean_delay_3m, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  xlim(-150, 150) +
   theme_minimal()
+
 
 statistics_plots[[4]] <- data_prepared %>%
   drop_na() %>%
   ggplot(aes(mean_delay_6m)) +
   geom_density() +
-  labs(
-    title = "6 m mean delay distribution",
-    x = "Mean delay 6 months",
-    y = "Count"
+  geom_vline(
+    xintercept = mean(data_prepared$mean_delay_6m, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
   ) +
+  geom_vline(
+    xintercept = median(data_prepared$mean_delay_6m, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of mean_delay_6m",
+    x = "Mean delay of 6 months",
+    y = "Count"
+ ) +
+  annotate(
+    geom = "text", x = mean(data_prepared$mean_delay_6m, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_prepared$mean_delay_6m, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  xlim(-150, 150) +
   theme_minimal()
+
+
 statistics_plots[[5]] <- data_prepared %>%
   drop_na() %>%
   ggplot(aes(mean_delay_12m)) +
   geom_density() +
-  labs(
-    title = "12 m mean delay distribution",
-    x = "Mean delay 12 months",
-    y = "Count"
+  geom_vline(
+    xintercept = mean(data_prepared$mean_delay_12m, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
   ) +
-  theme_minimal()
-
-statistics_plots[[6]] <- ggplot(data = data_prepared, aes(x = delay_indiv_21)) +
-  geom_bar() +
-  theme_minimal()
-
-statistics_plots[[7]] <- ggplot(data = data_prepared, aes(x = delay_indiv_140)) +
-  geom_bar() +
+  geom_vline(
+    xintercept = median(data_prepared$mean_delay_12m, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of mean_delay_12m",
+    x = "Mean delay of 12 months",
+    y = "Count"
+ ) +
+  annotate(
+    geom = "text", x = mean(data_prepared$mean_delay_12m, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_prepared$mean_delay_12m, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  xlim(-150, 150) +
   theme_minimal()
 
 statistics_plots <- grid.arrange(grobs = statistics_plots, ncol = 2)
@@ -985,6 +999,47 @@ coverage[[13]] <- ggplot(data = data_collection, aes(x = kzmz_flag)) +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
 coverage <- grid.arrange(grobs = coverage, ncol = 3)
 ```
+
+```{r helpnew, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE, fig.cap="\\label{fig:help_new} Statistics of the factor added attributes.", out.height='70%'}
+statisticss_plots <- list()
+
+statisticss_plots[[1]] <- ggplot(data = data_prepared, aes(x = delay_21_y)) +
+  geom_bar(aes(y = (..count..)/sum(..count..)))  + scale_y_continuous(labels=scales::percent) +
+  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "Count", vjust = -0.25) +
+  labs(title = "Payment delay greater than 21 days", y = "Percent", x = "Delay greater than 21 days")+
+  theme_minimal()
+
+statisticss_plots[[2]] <- ggplot(data = data_prepared, aes(x = delay_140_y)) +
+  geom_bar(aes(y = (..count..)/sum(..count..)))  + scale_y_continuous(labels=scales::percent) +
+  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "Count", vjust = -0.25) +
+  labs(title = "Payment delay greater than 140 days", y = "Percent", x = "Delay greater than 140 days")+
+  theme_minimal()
+statisticss_plots <- grid.arrange(grobs = statisticss_plots, ncol = 2)
+```
+
+```{r statIndiv, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:stat-new}Basic statistics of the added attributes.", out.height='50%'}
+statistics_plots <- list()
+statistics_plots[[1]] <- ggplot(data = data_prepared, aes(x = delay_indiv_21)) +
+  geom_bar() +
+    labs(
+    title = "Distribution of delay_indiv_21",
+    x = "Individual delay of 21 days",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+statistics_plots[[2]] <- ggplot(data = data_prepared, aes(x = delay_indiv_140)) +
+  geom_bar() +
+  labs(
+    title = "Distribution of delay_indiv_140",
+    x = "Individual delay of 140 days",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+statistics_plots <- grid.arrange(grobs = statistics_plots, ncol = 2)
+```
+
 
 # Tables
 ```{r Stats, echo=FALSE, eval=TRUE}
@@ -1045,11 +1100,90 @@ summaryData <- distinct(data.frame(headofTable, EX, VarX, Median, Q1, Q3, Min,
 ))
 knitr::kable(summaryData, caption = "Statistics summary.")
 ```
+```{r Statss, echo=FALSE, eval=TRUE}
+# Summary for each attribute
+data_prepared$mean_delay_1m[is.na(data_prepared$mean_delay_1m)] <- 0
+data_prepared$mean_delay_3m[is.na(data_prepared$mean_delay_3m)] <- 0
+data_prepared$mean_delay_6m[is.na(data_prepared$mean_delay_6m)] <- 0
+data_prepared$mean_delay_12m[is.na(data_prepared$mean_delay_12m)] <- 0
+
+headofTable_new <- c(
+"delay_indiv", "delay_indiv_21", "delay_indiv_140", "mean_delay_1m", "mean_delay_3m", "mean_delay_6m","mean_delay_12m"
+)
+EX_new <- c(
+  mean(data_prepared$delay_indiv),
+  mean(data_prepared$delay_indiv_21),
+  mean(data_prepared$delay_indiv_140),
+  mean(data_prepared$mean_delay_1m), mean(data_prepared$mean_delay_3m),
+  mean(data_prepared$mean_delay_6m), mean(data_prepared$mean_delay_12m)
+)
+VarX_new <- c(
+  var(data_prepared$delay_indiv),
+  var(data_prepared$delay_indiv_21),
+  var(data_prepared$delay_indiv_140),
+  var(data_prepared$mean_delay_1m), var(data_prepared$mean_delay_3m),
+  var(data_prepared$mean_delay_6m), var(data_prepared$mean_delay_12m)
+  
+)
+Median_new <- c(
+  median(data_prepared$delay_indiv),
+  median(data_prepared$delay_indiv_21),
+  median(data_prepared$delay_indiv_140),
+  median(data_prepared$mean_delay_1m), median(data_prepared$mean_delay_3m),
+  median(data_prepared$mean_delay_6m), median(data_prepared$mean_delay_12m)
+)
+
+Q1_new <- c(
+  quantile(data_prepared$delay_indiv, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_prepared$delay_indiv_21, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_prepared$delay_indiv_140, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_prepared$mean_delay_1m, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_prepared$mean_delay_3m, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_prepared$mean_delay_6m, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_prepared$mean_delay_12m, probs = 1 / 4, na.rm = TRUE)
+  
+)
+Q3_new <- c(
+  quantile(data_prepared$delay_indiv, probs = 3 / 4, na.rm = TRUE),
+  quantile(data_prepared$delay_indiv_21, probs = 3 / 4, na.rm = TRUE),
+  quantile(data_prepared$delay_indiv_140, probs = 3 / 4, na.rm = TRUE),
+  quantile(data_prepared$mean_delay_1m, probs = 3 / 4, na.rm = TRUE),
+  quantile(data_prepared$mean_delay_3m, probs = 3 / 4, na.rm = TRUE),
+  quantile(data_prepared$mean_delay_6m, probs = 3 / 4, na.rm = TRUE),
+  quantile(data_prepared$mean_delay_12m, probs = 3 / 4, na.rm = TRUE)
+  
+)
+Min_new <- c(
+  min(data_prepared$delay_indiv),
+  min(data_prepared$delay_indiv_21),
+  min(data_prepared$delay_indiv_140),
+  min(data_prepared$mean_delay_1m), min(data_prepared$mean_delay_3m),
+  min(data_prepared$mean_delay_6m), min(data_prepared$mean_delay_12m)
+  
+)
+Max_new <- c(
+  max(data_prepared$delay_indiv),
+  max(data_prepared$delay_indiv_21),
+  max(data_prepared$delay_indiv_140),
+  max(data_prepared$mean_delay_1m), max(data_prepared$mean_delay_3m),
+  max(data_prepared$mean_delay_6m), max(data_prepared$mean_delay_12m)
+  
+)
+summaryData_new <- distinct(data.frame(headofTable_new, EX_new, VarX_new, Median_new, Q1_new, Q3_new, Min_new, Max_new,
+                                       check.rows = FALSE, check.names = FALSE
+))
+knitr::kable(summaryData_new, caption = "Statistics summary of the new variables.")
+```
+
+
+
 ```{r Missing-stat, echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
 variables_miss <- miss_var_summary(data_collection)
-knitr::kable(head(n=9, variables_miss), caption = "Statistics of missing values.")
+knitr::kable(head(n=7, variables_miss), caption = "Statistics of missing values.")
 ```
 ```{r miss-statnew, echo=FALSE, warning=FALSE, message=FALSE}
 variables_miss_new <- miss_var_summary(data_prepared)
-knitr::kable(variables_miss_new, caption="Basic statistics of the NA values in the preprocessed data.")
+knitr::kable(head(n=4, variables_miss_new), caption="Statistics of missing values of the new variables.")
 ```
+
+

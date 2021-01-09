@@ -69,16 +69,298 @@ data_collection <- data_collection %>%
 data_collection <- subset(data_collection, select = -payed_ammount)
 data_collection$delay <- difftime(data_collection$payment_date,
   data_collection$due_date, tz,
-  units = "days"
-)
+  units = "days")
 ```
-# Data Preparation
-## Data Understanding
-### Data Description Report
 
-The initial data was provided in a comma-separated values file, and was loaded and processed using the R programming language. Dataset used in this analysis contains 2 353 012 observations and 24 variables. Out of the 24 variables, 13 are of factor datatype, 9 are numeric and 2 are dates.
-All columns from the initial data were converted to the correct datype according to the data description file, which was provided. Column payed_ammount was replaced by column paid_amount. Column payment_date originally contained some blank fields, which were subsequently filled in as NA.
+```{r load_new_data, eval=TRUE, include=FALSE, cache=TRUE}
+data_prepared <- read.delim("..\\data_collection_prepared_new.txt", header = TRUE, sep = ";", dec = ".")
+data_prepared <- data_prepared %>%
+  mutate(delay_140_y = as.factor(delay_140_y))
+data_prepared <- data_prepared %>%
+  mutate(delay_21_y = as.factor(delay_21_y))
 
-|Column name|Description|Type|Values|
-|-----------|-----------|-----------|
-|contract_id|Unique identificator of the contract|Int|\{1,2,3,…,N}|
+```
+
+### Basic statistics
+ 
+Basic statistics computed for new numeric variables can be located in Table \@ref(tab:Statss).
+First of all we focused on attribute *delay*, as our target attribute.
+On Figure \@ref(fig:statnewdelay) 4 different plots visualizing delay variable. As we can see, the values fluctuate mostly around 0. Although values range from -1673 to 2787, its median is 17 and mean 22.13. 
+  
+  
+We also computed some basic statistics for the other added attributes. 
+Results can be seen on Figure \@ref(fig:statnew), where we visualized the distribution of delay_indiv and mean delay variables. PRIEMER????
+
+On Figure \@ref(fig:statIndiv) we can see the distribution of variable *delay_indiv_21* and *delay_indiv_140*.We can see, that delay greater than 140 is present only in a few payments, whereas delay greater than 21 days is more common.
+
+Lastly, we also analyzed factor variables, *delay_21_y* and *delay_140_y*. As we can see on Figure \@ref(fig:helpnew), almost half (48,2 %) of all the payments were delayed for more than 21 days.
+
+
+
+```{r statnewdelay, echo=FALSE, eval= TRUE, message=FALSE, warning=FALSE, fig.cap="\\label{fig:stat-newdelay}Basic statistics of the added attribute delay."}
+delay_plots <- list()
+delay_plots[[1]] <- data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(x = delay)) + 
+  geom_histogram() + 
+  xlim(-1000, 1000) +
+  labs(
+    title = "Distribution of delay",
+    x = "Delay",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+delay_plots[[2]] <-  data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(x = delay)) + 
+  geom_histogram() + 
+  scale_y_log10() + 
+  xlim(-1500, 2500) +
+  labs(
+    title = "Distribution of delay on logarithmic scale",
+    x = "Delay",
+    y = "Count"
+  ) +
+  theme_minimal()
+delay_plots[[3]] <- data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(delay)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_prepared$delay, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_prepared$delay, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
+    xlim(-400, 400) +
+  labs(
+    title = "Distribution of delay",
+    x = "Delay",
+    y = "Count"
+  ) +
+  annotate(
+    geom = "text", x = mean(data_prepared$delay, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_prepared$delay, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  theme_minimal()
+
+delay_plots[[4]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = delay)) +
+  scale_x_discrete() +
+  labs(title = "Delay") +
+  theme_minimal()
+delay_plots <- grid.arrange(grobs = delay_plots, ncol = 2)
+```
+
+
+
+```{r statnew, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:stat-new}Basic statistics of the added attributes."}
+statistics_plots <- list()
+
+statistics_plots[[1]] <- data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(delay_indiv)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_prepared$delay_indiv, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_prepared$delay_indiv, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of delay_indiv",
+    x = "Delay individual",
+    y = "Count"
+  ) +
+  annotate(
+    geom = "text", x = mean(data_prepared$delay_indiv, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_prepared$delay_indiv, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  xlim(-150, 150) +
+  theme_minimal()
+
+statistics_plots[[2]] <- data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(mean_delay_1m)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_prepared$mean_delay_1m, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_prepared$mean_delay_1m, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of mean_delay_1m",
+    x = "Mean delay of 1 month",
+    y = "Count"
+ ) +
+  annotate(
+    geom = "text", x = mean(data_prepared$mean_delay_1m, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_prepared$mean_delay_1m, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  xlim(-150, 150) +
+  theme_minimal()
+
+statistics_plots[[3]] <- data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(mean_delay_3m)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_prepared$mean_delay_3m, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_prepared$mean_delay_3m, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of mean_delay_3m",
+    x = "Mean delay of 3 months",
+    y = "Count"
+ ) +
+  annotate(
+    geom = "text", x = mean(data_prepared$mean_delay_3m, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_prepared$mean_delay_3m, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  xlim(-150, 150) +
+  theme_minimal()
+
+
+statistics_plots[[4]] <- data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(mean_delay_6m)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_prepared$mean_delay_6m, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_prepared$mean_delay_6m, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of mean_delay_6m",
+    x = "Mean delay of 6 months",
+    y = "Count"
+ ) +
+  annotate(
+    geom = "text", x = mean(data_prepared$mean_delay_6m, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_prepared$mean_delay_6m, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  xlim(-150, 150) +
+  theme_minimal()
+
+
+statistics_plots[[5]] <- data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(mean_delay_12m)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_prepared$mean_delay_12m, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_prepared$mean_delay_12m, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of mean_delay_12m",
+    x = "Mean delay of 12 months",
+    y = "Count"
+ ) +
+  annotate(
+    geom = "text", x = mean(data_prepared$mean_delay_12m, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_prepared$mean_delay_12m, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  xlim(-150, 150) +
+  theme_minimal()
+
+statistics_plots <- grid.arrange(grobs = statistics_plots, ncol = 2)
+```
+
+```{r helpnew, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE, fig.cap="\\label{fig:help_new} Statistics of the factor added attributes.", out.height='70%'}
+statisticss_plots <- list()
+
+statisticss_plots[[1]] <- ggplot(data = data_prepared, aes(x = delay_21_y)) +
+  geom_bar(aes(y = (..count..)/sum(..count..)))  + scale_y_continuous(labels=scales::percent) +
+  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "Count", vjust = -0.25) +
+  labs(title = "Payment delay greater than 21 days", y = "Percent", x = "Delay greater than 21 days")+
+  theme_minimal()
+
+statisticss_plots[[2]] <- ggplot(data = data_prepared, aes(x = delay_140_y)) +
+  geom_bar(aes(y = (..count..)/sum(..count..)))  + scale_y_continuous(labels=scales::percent) +
+  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "Count", vjust = -0.25) +
+  labs(title = "Payment delay greater than 140 days", y = "Percent", x = "Delay greater than 140 days")+
+  theme_minimal()
+statisticss_plots <- grid.arrange(grobs = statisticss_plots, ncol = 2)
+```
+
+```{r statIndiv, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:stat-new}Basic statistics of the added attributes.", out.height='50%'}
+statistics_plots <- list()
+statistics_plots[[1]] <- ggplot(data = data_prepared, aes(x = delay_indiv_21)) +
+  geom_bar() +
+    labs(
+    title = "Distribution of delay_indiv_21",
+    x = "Individual delay of 21 days",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+statistics_plots[[2]] <- ggplot(data = data_prepared, aes(x = delay_indiv_140)) +
+  geom_bar() +
+  labs(
+    title = "Distribution of delay_indiv_140",
+    x = "Individual delay of 140 days",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+statistics_plots <- grid.arrange(grobs = statistics_plots, ncol = 2)
+```
+
+
