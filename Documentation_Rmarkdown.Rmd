@@ -24,8 +24,10 @@ library(gridExtra)
 ```
 # Business Understanding
 The main topic of this data science project is to optimize the collection process. Sponsor of the project is Mr. Jiří Procházka, who decided on the scope of the project, provided data and helped define project deliverables.  
+
 First of all it was important to understand the collection process. Clients are paying certain amount due to the certain date. If the client delays his payment, certain collection procedure takes place because of the costs that rise for the company. There are three actions taking place under different conditions. If the payment is delayed for 21 - 69 days, first action is taken. Second action is taken if the delay is between 70 - 139 days and the third action is taken for delay greater than 140 days.  
-Our goal was to create three models. First model predicts whether the customer will be delayed in payment for 21+ days. Second model predicts whether the customer will be delayed in payment for 140+ days. Lastly, third model should estimate average number of days delayed if the client would exceed the first action. All three models were defined baseline accuracy, to which our models were compared.  
+Our goal was to create three models. First model predicts whether the customer will be delayed in payment for 21+ days. Second model predicts whether the customer will be delayed in payment for 140+ days. Lastly, third model should estimate the average number of days delayed if the client would exceed the first action. All three models were defined baseline accuracy, to which created models were compared.  
+
 As one of the deliverables, project documentation describes project flow. Project consisted of three major steps: Data preparation, Modeling, Evaluation. All of the phases are described in detail with visualized results and findings in this document.  
 We chose to use R studio to prepare the data, create models and evaluate, RMarkdown was used to create documentation of the project.
 
@@ -83,7 +85,7 @@ data_collection$delay <- difftime(data_collection$payment_date,
 ### Data Description Report
 
 The initial data was provided in a comma-separated values file, and was loaded and processed using the R programming language. Dataset used in this analysis contains 2 353 012 observations and 24 variables. Out of the 24 variables, 13 are of factor datatype, 9 are numeric and 2 are dates. All columns from the initial dataset were converted to the correct datype according to the data description file, which was provided. Column *payed_ammount* was replaced by column *paid_amount*. Column *payment_date* originally contained some blank fields, which were subsequently filled in as NA.
-We also created a new feature *delay* at the beginning of our work as the target variable. Variable stands for the difference between "payment_date" and "due_date".
+We also created a new feature *delay* at the beginning of our work as the target variable. Variable stands for the difference between *payment_date* and *due_date*.
 
 |Column name|Description|Type|Values|
 |-----------|-----------|----|-------|
@@ -118,7 +120,7 @@ We computed correlation coefficients between all possible pairs of numeric varia
 Then, the significance of correlation between due amount and paid amount was tested using Pearson's product moment correlation coefficient. The pair of attributes was found to be significantly correlated with a correlation coefficient  of 0.76 and p-value less than 2.2e-16.  
 Relationship between categorical variables was tested using chi-squared test with the significance level of 0.05. All significantly correlated pairs of variables can be accessed in "categorical_rel" dataframe.
 
-#### Basic statistics
+### Basic statistics
 Basic statistics computed for numeric variables can be located in Table \@ref(tab:Stats). Frequency, relative frequency and relative cumulative frequency were computed for each categorical variable and its categories. All frequency tables can be located in the "frequencies" list.
 
 ## Data Exploration Report
@@ -127,24 +129,16 @@ Distribution of numeric and categorical variables was visualized using boxplots,
 ## Data Quality Report
 ### Data coverage
 Next step consisted of the data coverage and plausibility analysis.  
-As an example, we have chosen a couple of plots, that indicate interesting data distribution.  
-We, for example, found out that clients mostly order the product type 1, contracts are mostly in status 5 or that most of the payments have a discount.  
-We also discovered, that the marital status of the clients is mostly number 3 and they have most frequently no children. Clients also very frequently do not provide information about their earnings and they usually ordered 1 other product.  
-Although the distribution of values across factor variables is not even, we do not think, the findings 
-have to be analyzed closely.
-All the mentioned findings can be seen on visualizations in Figure \@ref(fig:distribution). 
+We did not find the results surprising, but as an example, we have chosen a couple of plots, that indicate interesting data distribution. We, for example, found out that clients mostly order the product type 1, contracts are mostly in status 5 or that most of the payments have a discount. We also discovered, that the marital status of the clients is mostly number 3 and they have most frequently no children. Clients also very frequently do not provide information about their earnings and they usually ordered 1 other product. Although the distribution of values across factor variables is not even, we do not think, the findings have to be analyzed closely.All the mentioned findings can be seen on visualizations in Figure \@ref(fig:distribution). 
 
 ### Missing values
 Exploring the NA values in the dataset, we found out, that 4 attributes had 
 almost the same percentage of missing values, as can be seen in the statistics \@ref(tab:Missing-stat).  
-Attributes kc_flag, living_area, cf_val and different_contact_area have the most missing values, almost 20 %, whereas payment_order has around 3,5 % and payment_date and delay have the same percentage, almost 0,5 %.  
-
+Attributes *kc_flag*, *living_area*, *cf_val* and *different_contact_area* have the most missing values, almost 20 %, whereas *payment_order* has around 3,5 % and *payment_date* and *delay* have the same percentage, almost 0,5 %.  
 Using a different visualization, that can be seen in Figure \@ref(fig:Missing-complex) or Figure \@ref(fig:missing-H), we discovered, that the four attributes with the highest percentage are 
 not missing at random but almost all at the same time.  
-
-We found out, that contract_id together with payment_order were not creating a unique key of the data payment, but one payment was divided into multiple parts, which was also causing problem with NA values in the four attributes. Data in the four attributes were not copied into other parts of a payment, but were present in just the first payment part.  
+We found out, that contract_id together with payment_order were not creating a unique key of the payment. One payment was divided into multiple parts, which was also causing problem with NA values in the four attributes. Data in the four attributes were not copied into other parts of a payment, but were present in just the first payment part.  
 We decided to unify the payment parts into only one payment by summarizing the paid amount of all the parts and using the payment_date of the last paid part. Thanks to the unification, the amount of NA values has markedly decreased.  
-
 Secondly, we dealt with the NA values in payment_order and payment_date. Since it was only less then 4 % of the dataset, and it was not possible to substitute the values, we decided to delete the rows.  
 
 ## Feature engineering
@@ -157,18 +151,18 @@ data_prepared <- data_prepared %>%
   mutate(delay_21_y = as.factor(delay_21_y))
 ```
 
-We decided to add new features to create higher-accuracy models. As already have been mentioned, we firstly computed a numeric feature *delay* counting the difference of days between payment_date and due_date. We selected this variable as our target.  
+We decided to add new features to create higher-accuracy models. As already have been mentioned, we firstly computed a numeric feature *delay* counting the difference of days between *payment_date* and *due_date*. We selected this variable as our target variable.  
 
 Since we are creating two classification models deciding whether a new payment will be delayed
-for more than 21 days or more than 140 days, we created 2 new factor features *delay_21_y* and *delay_140_y*. Variables set 1 if the payment delay is greater than 21 or greater than 140 days.
+for more than 21 days or more than 140 days, we created 2 new factor features *delay_21_y* and *delay_140_y*. Value is set to 1 if the payment delay is greater than 21 or greater than 140 days.
 
 We also created a new numerical feature *delay_indiv* counting the mean delay for the whole client´s history. We also computed 2 new numerical features, *delay_indiv_21* and *delay_indiv_140* counting number of delayed payments (21, 140 days) for the whole client's history.
 
 Lastly, numerical features *mean_delay_1m* ,*mean_delay_3m*, *mean_delay_6m*, *mean_delay_12m* are computing the mean delay for the last 1/3/6/12 months in the client´s history.  
 
 ## Exploratory analysis of the new features
-Adding new created attributes, we started to work with 34 variables. We created
-2 factor attributes and 8 numerical attributes.
+Adding new variables, we started to work with 34 variables. We created
+2 factor variables and 8 numerical variables
 
 ### Data description report
 
@@ -188,20 +182,20 @@ Adding new created attributes, we started to work with 34 variables. We created
  
 Basic statistics computed for new numeric variables can be located in Table \@ref(tab:Statss).
 First of all we focused on attribute *delay*, as our target attribute.
-On Figure \@ref(fig:statnewdelay) 4 different plots visualizing delay variable. As we can see, the values fluctuate mostly around 0. Although values range from -1673 to 2787, its median is 17 and mean 22.13. 
+On Figure \@ref(fig:statnewdelay), we provided 4 different plots visualizing delay variable. As we can see, the values fluctuate mostly around 0. Although values range from -1673 to 2787, delay median is 17 and delay mean is 22.13. 
   
   
 We also computed some basic statistics for the other added attributes. 
-Results can be seen on Figure \@ref(fig:statnew), where we visualized the distribution of delay_indiv and mean delay variables. PRIEMER????
+Results can be seen on Figure \@ref(fig:statnew), where we visualized the distribution of delay_indiv and mean delay variables. 
 
-On Figure \@ref(fig:statIndiv) we can see the distribution of variable *delay_indiv_21* and *delay_indiv_140*.We can see, that delay greater than 140 is present only in a few payments, whereas delay greater than 21 days is more common.
+On Figure \@ref(fig:statIndiv) we can see the distribution of variable *delay_indiv_21* and *delay_indiv_140*. Delay greater than 140 is present only in a few payments, whereas delay greater than 21 days is more common.
 
-Lastly, we also analyzed factor variables, *delay_21_y* and *delay_140_y*. As we can see on Figure \@ref(fig:helpnew), almost half (48,2 %) of all the payments were delayed for more than 21 days.
+Lastly, we also analyzed factor variables, *delay_21_y* and *delay_140_y*. Results are visualized on Figure \@ref(fig:helpnew), where almost half (48,2 %) of all the payments were delayed for more than 21 days and only 9 % of all the payments have delay larger than 140 days. 
 
 
 ### Missing values
-As can be seen in Figure \@ref(tab:miss-statnew), newly-created features also contain NA values. The highest percentage of missing values has attribute *mean_delay_12m*, almost 55 %. Together with *mean_delay_6m*, *mean_delay_3m* and *mean_delay_1m*, they are the only new attributes holding NA attributes.  
-It is not surprising, that these attributes have the highest percentage of NAs, since they compute results only every 12/6/3/1 months. We decided to replace the NA values by 0, so they can be later used in the modeling part. We discussed, that this step should not influence the data or the models.   
+As can be seen on Figure \@ref(tab:miss-statnew), newly-created features also contain NA values. The highest percentage of missing values has attribute *mean_delay_12m*, almost 55 %. Together with *mean_delay_6m*, *mean_delay_3m* and *mean_delay_1m*, they are the only new attributes holding NA attributes.  
+It is not surprising, that these attributes have the highest percentage of NAs, since they compute results only every 12/6/3/1 months. We decided to replace the NA values by 0, so they can be later used in the modeling part. We assume, that this step should not influence the models.   
 
 # Modeling
 ## Prediction model (21+ days) 
@@ -1000,7 +994,7 @@ coverage[[13]] <- ggplot(data = data_collection, aes(x = kzmz_flag)) +
 coverage <- grid.arrange(grobs = coverage, ncol = 3)
 ```
 
-```{r helpnew, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE, fig.cap="\\label{fig:help_new} Statistics of the factor added attributes.", out.height='70%'}
+```{r helpnew, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE, fig.cap="\\label{fig:help_new} Statistics of the factor added attributes.", out.height='40%'}
 statisticss_plots <- list()
 
 statisticss_plots[[1]] <- ggplot(data = data_prepared, aes(x = delay_21_y)) +
@@ -1017,7 +1011,7 @@ statisticss_plots[[2]] <- ggplot(data = data_prepared, aes(x = delay_140_y)) +
 statisticss_plots <- grid.arrange(grobs = statisticss_plots, ncol = 2)
 ```
 
-```{r statIndiv, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:stat-new}Basic statistics of the added attributes.", out.height='50%'}
+```{r statIndiv, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:stat-new}Basic statistics of the added attributes.", out.height='40%'}
 statistics_plots <- list()
 statistics_plots[[1]] <- ggplot(data = data_prepared, aes(x = delay_indiv_21)) +
   geom_bar() +
@@ -1042,8 +1036,21 @@ statistics_plots <- grid.arrange(grobs = statistics_plots, ncol = 2)
 
 
 # Tables
+
+```{r Missing-stat, echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
+variables_miss <- miss_var_summary(data_collection)
+knitr::kable(head(n=7, variables_miss), caption = "Statistics of missing values.")
+```
+
+```{r miss-statnew, echo=FALSE, warning=FALSE, message=FALSE}
+variables_miss_new <- miss_var_summary(data_prepared)
+knitr::kable(head(n=4, variables_miss_new), caption="Statistics of missing values of the new variables.")
+```
+
 ```{r Stats, echo=FALSE, eval=TRUE}
 # Summary for each attribute
+data_prepared <- data_prepared %>% drop_na(delay)
+
 headofTable <- c(
   "Num. of Children", "Num. Other Product", "Year of Birth",
   "Due amount", "Paid amount", "Delay"
@@ -1052,19 +1059,19 @@ EX <- c(
   mean(data_collection$number_of_children),
   mean(data_collection$number_other_product), mean(data_collection$birth_year),
   mean(data_collection$due_amount), mean(data_collection$paid_amount),
-  mean(data_collection$delay)
+  mean(data_prepared$delay)
 )
 VarX <- c(
   var(data_collection$number_of_children),
   var(data_collection$number_other_product), var(data_collection$birth_year),
   var(data_collection$due_amount), var(data_collection$paid_amount),
-  var(data_collection$delay)
+  var(data_prepared$delay)
 )
 Median <- c(
   median(data_collection$number_of_children),
   median(data_collection$number_other_product),
   median(data_collection$birth_year), median(data_collection$due_amount),
-  median(data_collection$paid_amount), median(data_collection$delay)
+  median(data_prepared$paid_amount), median(data_collection$delay)
 )
 Q1 <- c(
   quantile(data_collection$number_of_children, probs = 1 / 4, na.rm = TRUE),
@@ -1072,7 +1079,7 @@ Q1 <- c(
   quantile(data_collection$birth_year, probs = 1 / 4, na.rm = TRUE),
   quantile(data_collection$due_amount, probs = 1 / 4, na.rm = TRUE),
   quantile(data_collection$paid_amount, probs = 1 / 4, na.rm = TRUE),
-  quantile(data_collection$delay, probs = 1 / 4, na.rm = TRUE)
+  quantile(data_prepared$delay, probs = 1 / 4, na.rm = TRUE)
 )
 Q3 <- c(
   quantile(data_collection$number_of_children, probs = c(3 / 4), na.rm = TRUE),
@@ -1080,19 +1087,19 @@ Q3 <- c(
   quantile(data_collection$birth_year, probs = c(3 / 4), na.rm = TRUE),
   quantile(data_collection$due_amount, probs = c(3 / 4), na.rm = TRUE),
   quantile(data_collection$paid_amount, probs = c(3 / 4), na.rm = TRUE),
-  quantile(data_collection$delay, probs = 3 / 4, na.rm = TRUE)
+  quantile(data_prepared$delay, probs = 3 / 4, na.rm = TRUE)
 )
 Min <- c(
   min(data_collection$number_of_children),
   min(data_collection$number_other_product),
   min(data_collection$birth_year), min(data_collection$due_amount),
-  min(data_collection$paid_amount), min(data_collection$delay)
+  min(data_prepared$paid_amount), min(data_collection$delay)
 )
 Max <- c(
   max(data_collection$number_of_children),
   max(data_collection$number_other_product), max(data_collection$birth_year),
   max(data_collection$due_amount), max(data_collection$paid_amount),
-  max(data_collection$delay)
+  max(data_prepared$delay)
 )
 summaryData <- distinct(data.frame(headofTable, EX, VarX, Median, Q1, Q3, Min,
   Max,
@@ -1100,6 +1107,7 @@ summaryData <- distinct(data.frame(headofTable, EX, VarX, Median, Q1, Q3, Min,
 ))
 knitr::kable(summaryData, caption = "Statistics summary.")
 ```
+
 ```{r Statss, echo=FALSE, eval=TRUE}
 # Summary for each attribute
 data_prepared$mean_delay_1m[is.na(data_prepared$mean_delay_1m)] <- 0
@@ -1175,15 +1183,65 @@ summaryData_new <- distinct(data.frame(headofTable_new, EX_new, VarX_new, Median
 knitr::kable(summaryData_new, caption = "Statistics summary of the new variables.")
 ```
 
+```{r StatsAll, echo=FALSE, eval=TRUE}
+# Summary for each attribute
+data_prepared <- data_prepared %>% drop_na(delay)
 
-
-```{r Missing-stat, echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
-variables_miss <- miss_var_summary(data_collection)
-knitr::kable(head(n=7, variables_miss), caption = "Statistics of missing values.")
-```
-```{r miss-statnew, echo=FALSE, warning=FALSE, message=FALSE}
-variables_miss_new <- miss_var_summary(data_prepared)
-knitr::kable(head(n=4, variables_miss_new), caption="Statistics of missing values of the new variables.")
+headofTable <- c(
+  "Num. of Children", "Num. Other Product", "Year of Birth",
+  "Due amount", "Paid amount", "Delay"
+)
+EX <- c(
+  mean(data_collection$number_of_children),
+  mean(data_collection$number_other_product), mean(data_collection$birth_year),
+  mean(data_collection$due_amount), mean(data_collection$paid_amount),
+  mean(data_prepared$delay)
+)
+VarX <- c(
+  var(data_collection$number_of_children),
+  var(data_collection$number_other_product), var(data_collection$birth_year),
+  var(data_collection$due_amount), var(data_collection$paid_amount),
+  var(data_prepared$delay)
+)
+Median <- c(
+  median(data_collection$number_of_children),
+  median(data_collection$number_other_product),
+  median(data_collection$birth_year), median(data_collection$due_amount),
+  median(data_prepared$paid_amount), median(data_collection$delay)
+)
+Q1 <- c(
+  quantile(data_collection$number_of_children, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$number_other_product, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$birth_year, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$due_amount, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$paid_amount, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_prepared$delay, probs = 1 / 4, na.rm = TRUE)
+)
+Q3 <- c(
+  quantile(data_collection$number_of_children, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$number_other_product, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$birth_year, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$due_amount, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$paid_amount, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_prepared$delay, probs = 3 / 4, na.rm = TRUE)
+)
+Min <- c(
+  min(data_collection$number_of_children),
+  min(data_collection$number_other_product),
+  min(data_collection$birth_year), min(data_collection$due_amount),
+  min(data_prepared$paid_amount), min(data_collection$delay)
+)
+Max <- c(
+  max(data_collection$number_of_children),
+  max(data_collection$number_other_product), max(data_collection$birth_year),
+  max(data_collection$due_amount), max(data_collection$paid_amount),
+  max(data_prepared$delay)
+)
+summaryData <- distinct(data.frame(headofTable, EX, VarX, Median, Q1, Q3, Min,
+  Max,
+  check.rows = FALSE, check.names = FALSE
+))
+knitr::kable(summaryData, caption = "Statistics summary.")
 ```
 
 
