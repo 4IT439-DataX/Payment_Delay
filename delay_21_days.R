@@ -23,6 +23,11 @@ if(!require(lift)) install.packages("lift")
 library(lift)
 if(!require(MASS)) install.packages("MASS") 
 library(MASS)
+if(!require(scorecard)) install.packages("scorecard") 
+library(scorecard)
+if(!require(AUC)) install.packages("AUC") 
+library(AUC)
+
 
 rm(list = ls()) #clear
 cat(rep("\n",128)) #quick and dirty clear console
@@ -61,8 +66,10 @@ data_collection <- data_collection %>%
     "level5", "level6", "level7", "level8",
     "level9", "level10", "not_declared"
   )))
+# data_collection <- data_collection %>%
+#   mutate(living_area = as.factor(living_area))
 data_collection <- data_collection %>%
-  mutate(living_area = as.factor(living_area))
+  mutate(living_area = as.numeric(living_area))
 data_collection <- data_collection %>%
   mutate(different_contact_area = as.factor(different_contact_area))
 data_collection <- data_collection %>%
@@ -73,8 +80,10 @@ data_collection <- data_collection %>%
   mutate(kzmz_flag = as.factor(kzmz_flag))
 data_collection <- data_collection %>%
   mutate(due_amount = as.numeric(due_amount))
+# data_collection <- data_collection %>%
+#   mutate(delay_21_y = as.factor(delay_21_y))
 data_collection <- data_collection %>%
-  mutate(delay_21_y = as.factor(delay_21_y))
+  mutate(delay_21_y = as.numeric(delay_21_y))
 
 
 
@@ -82,10 +91,34 @@ data_collection <- data_collection %>%
 data_collection = data_collection[,-(27)] #delay_140y - irrelevant
 data_collection = data_collection[,-25] #delay - if we leave this in the dataset the accuracy/AUC will be 100%/1
 data_collection = data_collection[,-8] #payment_date - if we leave this in the dataset the accuracy/AUC will be 100%/1
-data_collection = data_collection[,-4] #living_area - has too many levels - more than 100gb of RAM is needed. Ask Mr. Prochazka
+# data_collection = data_collection[,-4] #living_area - has too many levels - more than 100gb of RAM is needed. Ask Mr. Prochazka
 
 # replace NA values with 0 in mean delay
 data_collection[is.na(data_collection)] <- 0
+
+
+### information value & WoE for living_area variable
+# generates optimal binning for numerical and  factor variables
+bins <- woebin(dt = data_collection, y = "delay_21_y")
+
+# plots of count distribution and bad probability for living_area
+woebin_plot(bins$living_area)
+
+# converts original values of input data into woe based on the binning information
+WOE_temp <- woebin_ply(data_collection,bins)
+
+#change data type from numeric to factor
+WOE_temp <- WOE_temp %>%
+  mutate(living_area_woe = as.factor(living_area_woe))
+
+#calculates information value (IV)
+IV_values <- iv(dt = data_collection,y = "delay_21_y")
+
+#adding woe values to dataset
+data_collection$living_area_woah<-paste(WOE_temp$living_area_woe)
+data_collection = data_collection[,-4] #living_area 
+data_collection <- data_collection %>%
+  mutate(delay_21_y = as.factor(delay_21_y))
 
 set.seed(500) #fix the random number generator
 
@@ -145,7 +178,7 @@ for(i in 1:nrow(hyper_grid)){
     intercept = TRUE,
     family = "binomial",
     trace = TRUE)
-
+  
   #calcualte predictions
   preds = predict(
     object = fit_elnet_reg,
@@ -155,11 +188,36 @@ for(i in 1:nrow(hyper_grid)){
   preds[,1] <- ifelse(preds[,1]>0.5, "1", "0")
   #calculate accuracy
   hyper_grid[i,"acc_ho"]<- accuracy(data_val$delay_21_y, preds)
-
+  
   print(i)
 }
 
+#optimal alpha/lambda
 opt_row_ho = which.max(hyper_grid[,"acc_ho"])
+
+#fit for cutoff - train
+fit_elnet_reg <- glmnet(
+  x = data_model_matrix_train,
+  y = data_train$delay_21_y,
+  alpha = hyper_grid[opt_row_ho,"alpha"],
+  lambda = hyper_grid[opt_row_ho,"lambda"],
+  standardize = TRUE,
+  intercept = TRUE,
+  family = "binomial",
+  trace = TRUE)
+
+#calcualte predictions for cutoff - val
+preds = predict(
+  object = fit_elnet_reg,
+  newx =  data_model_matrix_val,
+  type = "response")
+
+# get the optimal cutoff using ROC package
+cutoff_roc = pROC::roc(response = data_val$delay_21_y, predictor=preds)
+temp_cut <- coords(cutoff_roc, "best")
+optimal_cutoff <- temp_cut[1,1]
+
+
 
 #fitting 
 fit_elnet_reg_hoe <- glmnet(
@@ -179,7 +237,7 @@ preds_prob = predict(
   newx =  data_model_matrix_test,
   type = "response")
 #set cut off to 50%
-preds1 <- ifelse(preds_prob[,1]>0.50, "1", "0")
+preds1 <- ifelse(preds_prob[,1]>optimal_cutoff, "1", "0")
 #calculate accuracy
 accuracy(data_test$delay_21_y, preds1)
 
@@ -187,7 +245,7 @@ accuracy(data_test$delay_21_y, preds1)
 conf.mat = confusionMatrix(table(preds1, data_test$delay_21_y), positive = "1")
 logist_sensitivity = conf.mat$byClass["Sensitivity"]
 logist_specifity = conf.mat$byClass["Specificity"]
-s.logist.roc = roc(response = data_test$delay_21_y, predictor=preds_prob, plot = TRUE, print.auc = TRUE)
+s.logist.roc = pROC::roc(response = data_test$delay_21_y, predictor=preds_prob, plot = TRUE, print.auc = TRUE)
 abline(v = logist_specifity, h = logist_sensitivity, col = 'red', lty = "dotted")
 
 
@@ -211,7 +269,7 @@ preds_prob2 = predict(
   type = "response")
 
 #set cut off
-preds2 <- ifelse(preds_prob2[,1]>0.5, "1", "0")
+preds2 <- ifelse(preds_prob2[,1]>optimal_cutoff, "1", "0")
 
 #calculate accuracy
 accuracy(data_test$delay_21_y, preds2)
@@ -220,7 +278,7 @@ accuracy(data_test$delay_21_y, preds2)
 conf.mat = confusionMatrix(table(preds2, data_test$delay_21_y), positive = "1")
 logist_sensitivity = conf.mat$byClass["Sensitivity"]
 logist_specifity = conf.mat$byClass["Specificity"]
-s.logist.roc = roc(response = data_test$delay_21_y, predictor=preds_prob2, plot = TRUE, print.auc = TRUE)
+s.logist.roc = pROC::roc(response = data_test$delay_21_y, predictor=preds_prob2, plot = TRUE, print.auc = TRUE)
 abline(v = logist_specifity, h = logist_sensitivity, col = 'red', lty = "dotted")
 
 #top decile lift
@@ -228,5 +286,9 @@ TopDecileLift(preds_prob2, data_test$delay_21_y)
 plotLift(preds_prob2, data_test$delay_21_y, cumulative = FALSE, n.buckets = 10)
 
 
-
+#plots
+plot(AUC::sensitivity(preds_prob2, data_test$delay_21_y))
+plot(AUC::specificity(preds_prob2, data_test$delay_21_y), add = T)
+plot(AUC::specificity(preds_prob2, data_test$delay_21_y))
+plot(AUC::sensitivity(preds_prob2, data_test$delay_21_y))
 

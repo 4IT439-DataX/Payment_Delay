@@ -23,12 +23,19 @@ if(!require(lift)) install.packages("lift")
 library(lift)
 if(!require(MASS)) install.packages("MASS") 
 library(MASS)
+if(!require(scorecard)) install.packages("scorecard") 
+library(scorecard)
 
 rm(list = ls()) #clear
 cat(rep("\n",128)) #quick and dirty clear console
 
 setwd("C:/Users/tung.tran/Desktop/Prednasky-cvika/Data X/Data set - projekt/phase2")
 
+pred.class = function(preds_probs, cut.off){
+  preds = relevel(as.factor(preds_probs[,2]>cut.off),ref = "FALSE")
+  levels(preds) = c("0","1")
+  return(preds)
+}
 
 #load data
 data_collection <- read.delim("data_collection_prepared_final.txt", sep = ";", dec = ".")
@@ -61,8 +68,10 @@ data_collection <- data_collection %>%
     "level5", "level6", "level7", "level8",
     "level9", "level10", "not_declared"
   )))
+# data_collection <- data_collection %>%
+#   mutate(living_area = as.factor(living_area))
 data_collection <- data_collection %>%
-  mutate(living_area = as.factor(living_area))
+  mutate(living_area = as.numeric(living_area))
 data_collection <- data_collection %>%
   mutate(different_contact_area = as.factor(different_contact_area))
 data_collection <- data_collection %>%
@@ -73,8 +82,10 @@ data_collection <- data_collection %>%
   mutate(kzmz_flag = as.factor(kzmz_flag))
 data_collection <- data_collection %>%
   mutate(due_amount = as.numeric(due_amount))
+# in order to hitting the woah hard enough -> delay_140_y has to be numeric
+# its change back to factor later
 data_collection <- data_collection %>%
-  mutate(delay_140_y = as.factor(delay_140_y))
+  mutate(delay_140_y = as.numeric(delay_140_y))
 
 
 
@@ -82,10 +93,35 @@ data_collection <- data_collection %>%
 data_collection = data_collection[,-(26)] #delay_21_y - irrelevant
 data_collection = data_collection[,-25] #delay - if we leave this in the dataset the accuracy/AUC will be 100%/1
 data_collection = data_collection[,-8] #payment_date - if we leave this in the dataset the accuracy/AUC will be 100%/1
-data_collection = data_collection[,-4] #living_area - has too many levels - more than 100gb of RAM is needed. Ask Mr. Prochazka
+# data_collection = data_collection[,-4] #living_area - has too many levels - more than 100gb of RAM is needed. Ask Mr. Prochazka
 
 # replace NA values with 0 in mean delay
 data_collection[is.na(data_collection)] <- 0
+
+
+### information value & WoE for living_area variable
+# generates optimal binning for numerical and  factor variables
+bins <- woebin(dt = data_collection, y = "delay_140_y")
+
+# plots of count distribution and bad probability for living_area
+woebin_plot(bins$living_area)
+
+# converts original values of input data into woe based on the binning information
+WOE_temp <- woebin_ply(data_collection,bins)
+
+#change data type from numeric to factor
+WOE_temp <- WOE_temp %>%
+  mutate(living_area_woe = as.factor(living_area_woe))
+
+#calculates information value (IV)
+IV_values <- iv(dt = data_collection,y = "delay_140_y")
+
+#adding woe values to dataset
+data_collection$living_area_woah<-paste(WOE_temp$living_area_woe)
+data_collection = data_collection[,-4] #living_area 
+data_collection <- data_collection %>%
+  mutate(delay_140_y = as.factor(delay_140_y))
+
 
 set.seed(500) #fix the random number generator
 
@@ -133,6 +169,11 @@ imp <- data.frame(overall = imp$Overall,
                   variables   = rownames(imp))
 imp[order(imp$overall,decreasing = T),]
 
+
+########### CUTOFF ################
+# Maximise sensitivity - chceme snizit False Negative -> lidi co se opozdi o 
+# 140 dni nejsou schopni splacet
+
 ########### HOLDOUT ################
 #get estimate of the validation error for each couple on the grid
 for(i in 1:nrow(hyper_grid)){
@@ -159,8 +200,32 @@ for(i in 1:nrow(hyper_grid)){
   
   print(i)
 }
-
 opt_row_ho = which.max(hyper_grid[,"acc_ho"])
+
+#fit for cutoff - train
+fit_elnet_reg <- glmnet(
+  x = data_model_matrix_train,
+  y = data_train$delay_140_y,
+  alpha = hyper_grid[opt_row_ho,"alpha"],
+  lambda = hyper_grid[opt_row_ho,"lambda"],
+  standardize = TRUE,
+  intercept = TRUE,
+  family = "binomial",
+  trace = TRUE)
+
+#calcualte predictions for cutoff - val
+preds = predict(
+  object = fit_elnet_reg,
+  newx =  data_model_matrix_val,
+  type = "response")
+
+# get the optimal cutoff using ROC package
+cutoff_roc = pROC::roc(response = data_val$delay_140_y, predictor=preds)
+temp_cut <- coords(cutoff_roc, "best")
+optimal_cutoff <- temp_cut[1,1]
+
+
+
 
 #fitting 
 fit_elnet_reg_hoe <- glmnet(
@@ -180,7 +245,7 @@ preds_prob = predict(
   newx =  data_model_matrix_test,
   type = "response")
 #set cut off to 50%
-preds1 <- ifelse(preds_prob[,1]>0.50, "1", "0")
+preds1 <- ifelse(preds_prob[,1]>optimal_cutoff, "1", "0")
 #calculate accuracy
 accuracy(data_test$delay_140_y, preds1)
 
@@ -200,7 +265,7 @@ fit_elnet_cvp <- cv.glmnet(
   x = data_model_matrix_trainval, 
   y = data_trainval$delay_140_y,
   lambda = c(seq(from = 0, to = 500, length.out = 50)),
-  alpha = hyper_grid[opt_row_ho,"alpha"], # number from interval (0,1) hyper_grid[opt_row_ho,"alpha"]
+  alpha = hyper_grid[opt_row_ho,"alpha"], # number from interval (0,1) 
   family = "binomial", 
   nfolds = 5,
   trace=TRUE)
@@ -212,7 +277,7 @@ preds_prob2 = predict(
   type = "response")
 
 #set cut off
-preds2 <- ifelse(preds_prob2[,1]>0.5, "1", "0")
+preds2 <- ifelse(preds_prob2[,1]>optimal_cutoff, "1", "0")
 
 #calculate accuracy
 accuracy(data_test$delay_140_y, preds2)
@@ -229,5 +294,9 @@ TopDecileLift(preds_prob2, data_test$delay_140_y)
 plotLift(preds_prob2, data_test$delay_140_y, cumulative = FALSE, n.buckets = 10)
 
 
-
+#plots
+plot(AUC::sensitivity(preds_prob2, data_test$delay_140_y))
+plot(AUC::specificity(preds_prob2, data_test$delay_140_y), add = T)
+plot(AUC::specificity(preds_prob2, data_test$delay_140_y))
+plot(AUC::sensitivity(preds_prob2, data_test$delay_140_y))
 
