@@ -3,14 +3,14 @@ title: "Documentation of the Payment Delays Project"
 author: "Ivana Stanova, Lenka Stastna"
 date: "1 1 2021"
 output:
-  bookdown::pdf_document2:
-    fig_caption: yes
-    keep_tex: true
   bookdown::html_document2:
     fig_caption: yes
     toc: true
     toc_depth: 2
     number_sections: true
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: true
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, fig.width = 12, fig.height = 8)
@@ -32,7 +32,7 @@ As one of the deliverables, project documentation describes project flow. Projec
 We chose to use R studio to prepare the data, create models and evaluate, RMarkdown was used to create documentation of the project.
 
 ```{r load, eval=TRUE, include=FALSE, cache=TRUE}
-path_to_data <- "D:/Dokumenty/ŠKOLA/4IT439 Data-X – aplikované analytické datové modely v reálných úlohách/Semestrálka/payment_dates_final.csv"
+path_to_data <- "..\\payment_dates_final.csv"
 data_collection <- read.csv(path_to_data)
 data_collection <- data_collection %>%
   mutate(due_date = as.Date(due_date, format = "%Y-%m-%d"))
@@ -144,7 +144,7 @@ Secondly, we dealt with the NA values in payment_order and payment_date. Since i
 ## Feature engineering
 
 ```{r load_new_data, eval=TRUE, include=FALSE, cache=TRUE}
-data_prepared <- read.delim("D:/Dokumenty/ŠKOLA/4IT439 Data-X – aplikované analytické datové modely v reálných úlohách/Semestrálka/Data/data_collection_prepared_new.txt", header = TRUE, sep = ";", dec = ".")
+data_prepared <- read.delim("..\\data_collection_prepared_new.txt", header = TRUE, sep = ";", dec = ".")
 data_prepared <- data_prepared %>%
   mutate(delay_140_y = as.factor(delay_140_y))
 data_prepared <- data_prepared %>%
@@ -199,52 +199,12 @@ It is not surprising, that these attributes have the highest percentage of NAs, 
 
 # Modeling
 ## Prediction model (21+ days) 
-The goal of this classification task was to predict if the customer will be delayed in payment for 21 and more days. The expectation of our sponsor for the model was for AUC to exceed 0.7.  
-
-First, we excluded delay_140_y (as it was deemed irrelevant for this part of modeling), delay and payment_date (because they caused 100% accuracy).  
-All missing values in mean_delay features were replaced by 0.  
-Due to living_area having too many levels, we used weight of evidence (WOE) to split living_area into a set of bins (by combining categories with similar WOE) based on similarity of delay_21_y variable distribution. For this action, we transformed delay_21_y into a numeric datatype. The optimal binning for living_area was found to be 4 and the original variable was replaced by the binned version, see Figure \@ref(fig:woe21). Finally, delay_21_y was transformed back to factor.  
-
-We calculated information value for the independent variables, with dependent variable being delay_21_y . We discovered that mean_delay_1m, mean_delay_3m and contract_id provided the most information value.  
-
-The dataset was then split into training (60%), validation (20%) and test (20%) datasets. We used stratified sampling to avoid missing classes in training data.
-Hypergrid was defined to tune the parameters. After fitting the model, variable importance was calculated and we discovered that mean_delay_1m, delay_indiv_21 and contract_status5 provided the best results.
-Afterwards, we use hold-out to determine cutoff and find the best values for alpha and lambda using training data. The optimal cutoff value was found to be 43,6%. Using alpha found in previous step, we used 5-fold cross-validation to find optimal value for lambda on validation data.  
-The accuracy of created model is 0.8866, see Figure \@ref(fig:auc21). For confusion matrix, please refer to the table below.
-
-                Confusion matrix
-            preds2      0      1
-                0 135752  18293
-                1  14608 121512
-                                          
-                Accuracy : 0.8866          
-                  95% CI : (0.8855, 0.8878)
-     No Information Rate : 0.5182          
-     P-Value [Acc > NIR] : < 2.2e-16       
-                                          
-                   Kappa : 0.7727        
-                                          
-        Mcnemar's Test P-Value : < 2.2e-16       
-                                          
-             Sensitivity : 0.8692          
-             Specificity : 0.9028          
-          Pos Pred Value : 0.8927          
-          Neg Pred Value : 0.8812          
-              Prevalence : 0.4818          
-          Detection Rate : 0.4188          
-    Detection Prevalence : 0.4691          
-       Balanced Accuracy : 0.8860          
-                                          
-       'Positive' Class : 1
+Predict if the customer will be delayed in payment for 21+ days.
+Significantly better than random model AUC > 0.7. In case of highly unbalanced other metrics such as AUCPR etc.
 
 ## Prediction model (140+ days) 
-The goal of this classification task was to predict if the customer will be delayed in payment for 140 and more days. The expectation was for AUC to exceed 0.7.
-
-We followed the same steps as for the first model, with the following differences:
-1. We excluded
-2. living_area was split into 7 bins (using WOE)
-
-The optimal cutoff value for this model is 10.1% and the accuracy is.
+Predict if the customer will be delayed in payment for 140+ days.
+Significantly better than random model AUC > 0.7. In case of highly unbalanced other metrics such as AUCPR etc.
 
 ## Estimation of the expected number of days of delay when the client triggers first action
 
@@ -1089,9 +1049,6 @@ statistics_plots[[2]] <- ggplot(data = data_prepared, aes(x = delay_indiv_140)) 
 statistics_plots <- grid.arrange(grobs = statistics_plots, ncol = 2)
 ```
 
-![(#fig:woe21) Binning for living_area](.//WOE21.png)
-
-![(#fig:auc21) AUC](.//AUC21.png)
 
 # Tables
 
@@ -1240,3 +1197,4 @@ summaryData_new <- distinct(data.frame(headofTable_new, EX_new, VarX_new, Median
 ))
 knitr::kable(summaryData_new, caption = "Statistics summary of the new variables.")
 ```
+

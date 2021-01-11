@@ -1231,7 +1231,7 @@ for (i in 1:nrow(data_collection)) {
   # means last 12/6/3/1 months. These rows are marked with 1 in the _help column.
   # Then, the average is calculated simply by multiplying delay column by
   # _help column and divided by the sum of _help. This works because the
-  # _help column has only zeros and ones.
+  # _help column has only zeroes and ones.
   # Lastly, the _help columned is restarted for the next round.
   for (j in 1:nrow(df_actual)) {
 
