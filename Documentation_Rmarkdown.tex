@@ -36,8 +36,8 @@
 \IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
 \IfFileExists{bookmark.sty}{\usepackage{bookmark}}{\usepackage{hyperref}}
 \hypersetup{
-  pdftitle={Documentation},
-  pdfauthor={Lenka Stastna, Ivana Stanova},
+  pdftitle={Documentation of the Payment Delays Project},
+  pdfauthor={Ivana Stanova, Lenka Stastna},
   hidelinks,
   pdfcreator={LaTeX via pandoc}}
 \urlstyle{same} % disable monospaced font for URLs
@@ -69,9 +69,9 @@
   \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
 \setcounter{secnumdepth}{5}
 
-\title{Documentation}
-\author{Lenka Stastna, Ivana Stanova}
-\date{19 11 2020}
+\title{Documentation of the Payment Delays Project}
+\author{Ivana Stanova, Lenka Stastna}
+\date{1 1 2021}
 
 \begin{document}
 \maketitle
@@ -80,7 +80,16 @@
 \setcounter{tocdepth}{2}
 \tableofcontents
 }
-Nejaký text z čoho pozostavala praca alebo ustredna tema? Zadanie? kto je sponzor? Kroky?
+\hypertarget{business-understanding}{%
+\section{Business Understanding}\label{business-understanding}}
+
+The main topic of this data science project is to optimize the collection process. Sponsor of the project is Mr.~Jiří Procházka, who decided on the scope of the project, provided data and helped define project deliverables.
+
+First of all it was important to understand the collection process. Clients are paying certain amount due to the certain date. If the client delays his payment, certain collection procedure takes place because of the costs that rise for the company. There are three actions taking place under different conditions. If the payment is delayed for 21 - 69 days, first action is taken. Second action is taken if the delay is between 70 - 139 days and the third action is taken for delay greater than 140 days.\\
+Our goal was to create three models. First model predicts whether the customer will be delayed in payment for 21+ days. Second model predicts whether the customer will be delayed in payment for 140+ days. Lastly, third model should estimate the average number of days delayed if the client would exceed the first action. All three models were defined baseline accuracy, to which created models were compared.
+
+As one of the deliverables, project documentation describes project flow. Project consisted of three major steps: Data preparation, Modeling, Evaluation. All of the phases are described in detail with visualized results and findings in this document.\\
+We chose to use R studio to prepare the data, create models and evaluate, RMarkdown was used to create documentation of the project.
 
 \hypertarget{data-preparation}{%
 \section{Data Preparation}\label{data-preparation}}
@@ -91,17 +100,19 @@ Nejaký text z čoho pozostavala praca alebo ustredna tema? Zadanie? kto je spon
 \hypertarget{data-description-report}{%
 \subsubsection{Data Description Report}\label{data-description-report}}
 
-The initial data was provided in a comma-separated values file, and was loaded and processed using the R programming language. Dataset used in this analysis contains 2 353 012 observations and 24 variables. Out of the 24 variables, 13 are of factor datatype, 9 are numeric and 2 are dates.
-All columns from the initial data were converted to the correct datype according to the data description file, which was provided. Column payed\_ammount was replaced by column paid\_amount. Column payment\_date originally contained some blank fields, which were subsequently filled in as NA.
+The initial data was provided in a comma-separated values file, and was loaded and processed using the R programming language. Dataset used in this analysis contains 2 353 012 observations and 24 variables. Out of the 24 variables, 13 are of factor datatype, 9 are numeric and 2 are dates. All columns from the initial dataset were converted to the correct datype according to the data description file, which was provided. Column \emph{payed\_ammount} was replaced by column \emph{paid\_amount}. Column \emph{payment\_date} originally contained some blank fields, which were subsequently filled in as NA.
+We also created a new feature \emph{delay} at the beginning of our work as the target variable. Variable stands for the difference between \emph{payment\_date} and \emph{due\_date}.
 
-\begin{longtable}[]{@{}lll@{}}
+\begin{longtable}[]{@{}llll@{}}
 \toprule
 \begin{minipage}[b]{0.30\columnwidth}\raggedright
 Column name\strut
 \end{minipage} & \begin{minipage}[b]{0.30\columnwidth}\raggedright
 Description\strut
-\end{minipage} & \begin{minipage}[b]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[b]{0.11\columnwidth}\raggedright
 Type\strut
+\end{minipage} & \begin{minipage}[b]{0.19\columnwidth}\raggedright
+Values\strut
 \end{minipage}\tabularnewline
 \midrule
 \endhead
@@ -109,201 +120,246 @@ Type\strut
 contract\_id\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Unique identificator of the contract\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Int\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{1,2,3,\ldots,N\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 payment\_order\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Order of the payment\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Int\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{1,2,3,\ldots\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 due\_date\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Payment deadline\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Date\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+YY/MM/DD\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 payment\_date\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Date of the payment\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Date\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+YY/MM/DD\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 product\_type\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Type of the product\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Factor\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{1,2,3,4,5\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 contract\_status\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Contract status\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Factor\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{1,2,3,4,5,6,7,8,9\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 business\_discount\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Business discount provided\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Factor\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{0,1\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 gender\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Gender\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Factor\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{1,2\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 marital\_status\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Marital status\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Factor\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{1,2,3,4,5,6\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 number\_of\_children\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Number of children\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Int\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{1,2,3,\ldots\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 number\_other\_product\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Number of other products\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Int\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{1,2,3,\ldots\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 clients\_phone\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 T/F if the client filled in home phone\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Factor\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{True, False\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 client\_mobile\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 T/F if the client filled in mobile phone\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Factor\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{True, False\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 client\_email\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 T/F if the client filled in email address\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Factor\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{True, False\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 total\_earnings\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Earning bucket\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Factor\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{level1,\ldots, not\_declared\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 birth\_year\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Birth year of the client\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Int\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{1990,1991,\ldots\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 birth\_month\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Birth month of the client\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Int\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{1,2,3,\ldots\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 living\_area\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Region of the client home address\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Factor\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{1,2,3,\ldots\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 different\_contact\_area\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 T/F if the client filled different home and contact address\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Factor\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{True, False\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 kc\_flag\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 T/F if the client does not home local citizenship\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Factor\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{True, False\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 cf\_val\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 If the special measure during the underwriting was applied\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
-\strut
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
+Numeric\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{-N,\ldots,N\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 kzmz\_flag\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 T/F if the client filled in employer\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Factor\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{True, False\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 due\_amount\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Installment what should be payed\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Numeric\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+(0,\ldots)\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 payed\_amount\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 What was payed at a certain date\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Numeric\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+(0,\ldots)\strut
+\end{minipage}\tabularnewline
+\begin{minipage}[t]{0.30\columnwidth}\raggedright
+delay\strut
+\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+Difference between payment\_date and due\_date\strut
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
+Int\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{-N,\ldots,N\}\strut
 \end{minipage}\tabularnewline
 \bottomrule
 \end{longtable}
 
-\hypertarget{value-ranges}{%
-\subsubsection{Value ranges}\label{value-ranges}}
-
-Frequency, relative frequency and relative cumulative frequency were computed for each category in all categorical variables. All frequency tables can be located in the ``frequencies'' list.
-
 \hypertarget{attribute-correlations}{%
 \subsubsection{Attribute correlations}\label{attribute-correlations}}
 
-\begin{figure}
-\centering
-\includegraphics{Correlogram.svg}
-\caption{correlogram}
-\end{figure}
-
-We computed correlation coefficients between all possible pairs of numeric variables, see Figure \ref{fig:correlogram}, and discovered strong positive correlation between due amount and paid amount. This could be due to the fact that in the event that the installment has already been paid, the due amount and the paid amount would assume the same value. Correlation between the remaining pairs of numeric variables was either nonexistent or negligible.
-Then, the significance of correlation between due amount and paid amount was tested using Pearson's product moment correlation coefficient. The pair of attributes was found to be significantly correlated with a correlation coefficient of 0.76 and p-value less than 2.2e-16.
-
+We computed correlation coefficients between all possible pairs of numeric variables, see Figure \ref{fig:correlogram}, and discovered strong positive correlation between \emph{due amount} and \emph{paid amount}. This could be due to the fact that in the event that the installment has already been paid, the due amount and the paid amount would assume the same value. Correlation between the remaining pairs of numeric variables was either nonexistent or negligible.\\
+Then, the significance of correlation between due amount and paid amount was tested using Pearson's product moment correlation coefficient. The pair of attributes was found to be significantly correlated with a correlation coefficient of 0.76 and p-value less than 2.2e-16.\\
 Relationship between categorical variables was tested using chi-squared test with the significance level of 0.05. All significantly correlated pairs of variables can be accessed in ``categorical\_rel'' dataframe.
 
 \hypertarget{basic-statistics}{%
-\paragraph{Basic statistics}\label{basic-statistics}}
+\subsubsection{Basic statistics}\label{basic-statistics}}
 
-Basic statistics computed for numeric variables can be located in Table @ref\{tab:statistics\}. Distribution of numeric and categorical variables was visualized using boxplots, density plots and histograms, see in Attachments, Figure \ref{fig:boxplots} and Figure \ref{fig:density}.
+Basic statistics computed for numeric variables can be located in Table \ref{tab:Stats}. Frequency, relative frequency and relative cumulative frequency were computed for each categorical variable and its categories. All frequency tables can be located in the ``frequencies'' list.
 
 \hypertarget{data-exploration-report}{%
 \subsection{Data Exploration Report}\label{data-exploration-report}}
 
-NIECO HODIT
+Distribution of numeric and categorical variables was visualized using boxplots, density plots and histograms, see Figure \ref{fig:density} and Figure \ref{fig:boxplots}. Next, we performed bivariate analysis of continuous variables with respect to categorical variables on selected pairs of features. The results for depedence on gender can be accessed in tables ``data\_GPA'' (dependence of paid amount on gender), ``data\_GD'' (Statistical dependence of delay on gender), ``data\_GDA'' (Statistical dependence of due amount on gender). We found out that business discount applies only to product type 1, as seen in Figure \ref{fig:delay-gender-prod}. Product type 1 displayed the highest median delay at around 25 days, followed by products 2, 3, 4, all with median delay at around 10 days. Product type 5 displayed the lowest median delay. The results did not significantly differ between the genders.
 
 \hypertarget{data-quality-report}{%
 \subsection{Data Quality Report}\label{data-quality-report}}
@@ -311,163 +367,135 @@ NIECO HODIT
 \hypertarget{data-coverage}{%
 \subsubsection{Data coverage}\label{data-coverage}}
 
-Next step consited of the data coverage analysis. As an example, we have chosen a couple of plots, that indicate interesting data distribution.
-We for example found out, that clients mostly order the product type 1, contracts are mostly in status number 1 or that most of the payments have a discount.
-We also discovered, that the marital status of the clients is mostly number 3 and they have most frequently no children. Clients also very frequently do not provide information about their earnings and they ordered usually 1 other product.
-
-All the mentioned findings can be seen on visualizations on Figure \ref{fig:distribution}. All the data coverage visualizations are available in the Attachments.
-
-\includegraphics{Documentation_Rmarkdown_files/figure-latex/distribution-1.pdf}
+Next step consisted of the data coverage and plausibility analysis.\\
+We did not find the results surprising, but as an example, we have chosen a couple of plots, that indicate interesting data distribution. We, for example, found out that clients mostly order the product type 1, contracts are mostly in status 5 or that most of the payments have a discount. We also discovered, that the marital status of the clients is mostly number 3 and they have most frequently no children. Clients also very frequently do not provide information about their earnings and they usually ordered 1 other product. Although the distribution of values across factor variables is not even, we do not think, the findings have to be analyzed closely.All the mentioned findings can be seen on visualizations in Figure \ref{fig:distribution}.
 
 \hypertarget{missing-values}{%
 \subsubsection{Missing values}\label{missing-values}}
 
 Exploring the NA values in the dataset, we found out, that 4 attributes had
-almost same percentage of missing values, as can be seen on the statistics on Figure @ref(fig:Missing\_stat).
-Attributes kc\_flag, living\_area, cf\_val and different\_contact\_area have the most missing values, almost 20 \%, whereas payment\_order has around 3,5 \% and payment\_date and delay have the same percentage, almost 0,5 \%.
-
-Using a different visualization, that can be seen on Figure @ref(fig:Missing\_complex),
-we discovered, that the four attributes with the highest percentage are
-not missing at random but almost all at the same time.
-
-We found out, that contract\_id together with payment\_order were not creating a unique key of the data payment,
-but one payment was divided into multiple parts, which was also causing problem with NA values in the four attributes. Data in the four attributes were not copied into other parts of a payment, but were present in just the first payment part.
-We decided to unify the payment parts into only one payment by summarizing the
-paid amount of all the parts and using the payment\_date of the last paid part.
-Thanks to the unification, the amount of NA values has markedly decreased.
-
-Secondly, we dealt with the NA values in payment\_order and payment\_date.
-Since it was only less then 4 \% of the dataset, and it was not possible to
-substitute the values, we decided to delete the rows.
-
-\begin{verbatim}
-## # A tibble: 25 x 3
-##    variable               n_miss pct_miss
-##    <chr>                   <int>    <dbl>
-##  1 different_contact_area 471354   20.0  
-##  2 cf_val                 469310   19.9  
-##  3 living_area            469015   19.9  
-##  4 kc_flag                468906   19.9  
-##  5 payment_order           83361    3.54 
-##  6 payment_date            11733    0.499
-##  7 delay                   11733    0.499
-##  8 contract_id                 0    0    
-##  9 due_date                    0    0    
-## 10 product_type                0    0    
-## # ... with 15 more rows
-\end{verbatim}
-
-\begin{figure}
-\centering
-\includegraphics{Documentation_Rmarkdown_files/figure-latex/Missing_complex-1.pdf}
-\caption{(\#fig:Missing\_complex)\label{fig:Missing_complex}Distribution of missing values}
-\end{figure}
-
-\begin{figure}
-\centering
-\includegraphics{missing_values_plot.png}
-\caption{missing\_values\_plot}
-\end{figure}
+almost the same percentage of missing values, as can be seen in the statistics \ref{tab:Missing-stat}.\\
+Attributes \emph{kc\_flag}, \emph{living\_area}, \emph{cf\_val} and \emph{different\_contact\_area} have the most missing values, almost 20 \%, whereas \emph{payment\_order} has around 3,5 \% and \emph{payment\_date} and \emph{delay} have the same percentage, almost 0,5 \%.\\
+Using a different visualization, that can be seen in Figure \ref{fig:Missing-complex} or Figure \ref{fig:missing-H}, we discovered, that the four attributes with the highest percentage are
+not missing at random but almost all at the same time.\\
+We found out, that contract\_id together with payment\_order were not creating a unique key of the payment. One payment was divided into multiple parts, which was also causing problem with NA values in the four attributes. Data in the four attributes were not copied into other parts of a payment, but were present in just the first payment part.\\
+We decided to unify the payment parts into only one payment by summarizing the paid amount of all the parts and using the payment\_date of the last paid part. Thanks to the unification, the amount of NA values has markedly decreased.\\
+Secondly, we dealt with the NA values in payment\_order and payment\_date. Since it was only less then 4 \% of the dataset, and it was not possible to substitute the values, we decided to delete the rows.
 
 \hypertarget{feature-engineering}{%
 \subsection{Feature engineering}\label{feature-engineering}}
 
-We decided to add new features to create higher-accuracy models.
-First of all, we computed a numerical feature ``delay'' counting the difference between payment\_date and due\_date.
+We decided to add new features to create higher-accuracy models. As already have been mentioned, we firstly computed a numeric feature \emph{delay} counting the difference of days between \emph{payment\_date} and \emph{due\_date}. We selected this variable as our target variable.
 
 Since we are creating two classification models deciding whether a new payment will be delayed
-for more than 21 days or more than 140 days, we created 2 new binary features ``delay\_21\_y'' and ``delay\_140\_y''.
+for more than 21 days or more than 140 days, we created 2 new factor features \emph{delay\_21\_y} and \emph{delay\_140\_y}. Value is set to 1 if the payment delay is greater than 21 or greater than 140 days.
 
-We also created a new numerical feature ``delay\_indiv'' counting the mean delay for the whole client´s history. We also computed 2 new numerical features, ``delay\_indiv\_21'' and ``delay\_indiv\_140'' counting cumulative number of delayed payments (21, 140 days) by one contract
+We also created a new numerical feature \emph{delay\_indiv} counting the mean delay for the whole client´s history. We also computed 2 new numerical features, \emph{delay\_indiv\_21} and \emph{delay\_indiv\_140} counting number of delayed payments (21, 140 days) for the whole client's history.
 
-Lastly, numerical features ``mean\_delay\_1m'' ,``mean\_delay\_3m'', ``mean\_delay\_6m'', ``mean\_delay\_12m'' are computing the mean delay for 1/3/6/12 months for each contract.
+Lastly, numerical features \emph{mean\_delay\_1m} ,\emph{mean\_delay\_3m}, \emph{mean\_delay\_6m}, \emph{mean\_delay\_12m} are computing the mean delay for the last 1/3/6/12 months in the client´s history.
 
 \hypertarget{exploratory-analysis-of-the-new-features}{%
 \subsection{Exploratory analysis of the new features}\label{exploratory-analysis-of-the-new-features}}
 
+Adding new variables, we started to work with 34 variables. We created
+2 factor variables and 8 numerical variables
+
 \hypertarget{data-description-report-1}{%
 \subsubsection{Data description report}\label{data-description-report-1}}
 
-\begin{longtable}[]{@{}lll@{}}
+\begin{longtable}[]{@{}llll@{}}
 \toprule
 \begin{minipage}[b]{0.30\columnwidth}\raggedright
 Column name\strut
 \end{minipage} & \begin{minipage}[b]{0.30\columnwidth}\raggedright
 Description\strut
-\end{minipage} & \begin{minipage}[b]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[b]{0.11\columnwidth}\raggedright
 Type\strut
+\end{minipage} & \begin{minipage}[b]{0.19\columnwidth}\raggedright
+Values\strut
 \end{minipage}\tabularnewline
 \midrule
 \endhead
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
-delay\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
-Difference between payment\_date and due\_date\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
-Int\strut
-\end{minipage}\tabularnewline
-\begin{minipage}[t]{0.30\columnwidth}\raggedright
 delay\_21\_y\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 T/F if the delay is more than 21 days\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Factor\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{True, False\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 delay\_140\_y\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 T/F if the delay is more than 140 days\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
-Int\strut
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
+Factor\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{True, False\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 delay\_indiv\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Mean delay for the whole client's history\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Int\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{-N,\ldots,N\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 delay\_indiv\_21\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Cumulative sum of payments delayed for more than 21 days by contract\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Int\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{1,2,3,\ldots,N\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 delay\_indiv\_140\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Cumulative sum of the payments delayed for more than 140 days by contract\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Int\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{1,2,3,\ldots,N\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 mean\_delay\_1m\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Average payment delay for the last month\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Int\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{-N,\ldots,N\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 mean\_delay\_3m\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Average payment delay for the last 3 months\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Int\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{-N,\ldots,N\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 mean\_delay\_6m\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Average payment delay for the last 6 months\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Int\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{-N,\ldots,N\}\strut
 \end{minipage}\tabularnewline
 \begin{minipage}[t]{0.30\columnwidth}\raggedright
 mean\_delay\_12m\strut
 \end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
 Average payment delay for the last 12 months\strut
-\end{minipage} & \begin{minipage}[t]{0.30\columnwidth}\raggedright
+\end{minipage} & \begin{minipage}[t]{0.11\columnwidth}\raggedright
 Int\strut
+\end{minipage} & \begin{minipage}[t]{0.19\columnwidth}\raggedright
+\{-N,\ldots,N\}\strut
 \end{minipage}\tabularnewline
 \bottomrule
 \end{longtable}
@@ -475,85 +503,22 @@ Int\strut
 \hypertarget{basic-statistics-1}{%
 \subsubsection{Basic statistics}\label{basic-statistics-1}}
 
-We computed basic statistics for each new attribute.
-All the visualizations can be seen on @ref(fig:stat\_new\_delay).
+Basic statistics computed for new numeric variables can be located in Table \ref{tab:Statss}.
+First of all we focused on attribute \emph{delay}, as our target attribute.
+On Figure \ref{fig:statnewdelay}, we provided 4 different plots visualizing delay variable. As we can see, the values fluctuate mostly around 0. Although values range from -1673 to 2787, delay median is 17 and delay mean is 22.13.
 
-First of all we focused on attribute delay. Since it is probably the most important attribute of the nexly created, we analysed its distribution, distribution of delay on log scale DOPLNIT CO SME NASLI.
-\includegraphics{Documentation_Rmarkdown_files/figure-latex/stat_new_delay-1.pdf}
+We also computed some basic statistics for the other added attributes.
+Results can be seen on Figure \ref{fig:statnew}, where we visualized the distribution of delay\_indiv and mean delay variables.
 
-\begin{verbatim}
-## [[1]]
-\end{verbatim}
+On Figure \ref{fig:statIndiv} we can see the distribution of variable \emph{delay\_indiv\_21} and \emph{delay\_indiv\_140}. Delay greater than 140 is present only in a few payments, whereas delay greater than 21 days is more common.
 
-\begin{figure}
-\centering
-\includegraphics{Documentation_Rmarkdown_files/figure-latex/stat_new_delay-2.pdf}
-\caption{(\#fig:stat\_new\_delay-2)\label{fig:stat_new_delay}Basic statistics of the added attribute delay.}
-\end{figure}
-
-\begin{verbatim}
-## 
-## [[2]]
-## NULL
-## 
-## [[3]]
-\end{verbatim}
-
-\begin{figure}
-\centering
-\includegraphics{Documentation_Rmarkdown_files/figure-latex/stat_new_delay-3.pdf}
-\caption{(\#fig:stat\_new\_delay-3)\label{fig:stat_new_delay}Basic statistics of the added attribute delay.}
-\end{figure}
-
-\begin{verbatim}
-## 
-## [[4]]
-\end{verbatim}
-
-\includegraphics{Documentation_Rmarkdown_files/figure-latex/stat_new_delay-4.pdf}
-\includegraphics{delay_boxplot.png}
-We also computed some basic statistics for the other added attributes. DOPLNIT CO SME NASLI
-\includegraphics{Documentation_Rmarkdown_files/figure-latex/stat_new-1.pdf}
+Lastly, we also analyzed factor variables, \emph{delay\_21\_y} and \emph{delay\_140\_y}. Results are visualized on Figure \ref{fig:helpnew}, where almost half (48,2 \%) of all the payments were delayed for more than 21 days and only 9 \% of all the payments have delay larger than 140 days.
 
 \hypertarget{missing-values-1}{%
 \subsubsection{Missing values}\label{missing-values-1}}
 
-As can be seen on Figure, newly-created features also contain NA values. The highest percentage of missing values has attribute mean\_delay\_12m, almost 55 \%. Together with mean\_delay\_6m, mean\_delay\_3m and mean\_delay\_1m, they are the only new attributes holding NA attributes.
-
-It is not surprising, that these attributes have the highest percentage of NAs, since they compute results only every 12/6/3/1 months.
-
-We decided to replace the NA values by 0, so they can be later used in the modeling part.
-
-\begin{verbatim}
-## # A tibble: 34 x 3
-##    variable               n_miss pct_miss
-##    <chr>                   <int>    <dbl>
-##  1 mean_delay_12m         804268    55.4 
-##  2 mean_delay_6m          458935    31.6 
-##  3 mean_delay_3m          249422    17.2 
-##  4 mean_delay_1m           95489     6.58
-##  5 contract_id                 0     0   
-##  6 payment_order               0     0   
-##  7 due_date                    0     0   
-##  8 living_area                 0     0   
-##  9 different_contact_area      0     0   
-## 10 kc_flag                     0     0   
-## # ... with 24 more rows
-\end{verbatim}
-
-\hypertarget{advanced-statistics}{%
-\subsection{Advanced statistics}\label{advanced-statistics}}
-
-\includegraphics{Dependence of paid amount on gender, product type and business discount.svg}
-\includegraphics{Distribution of due amount by contract status.png}
-\includegraphics{Distribution of paid amount according to total earnings.png}
-\includegraphics{Paid amount by product type.png}
-\includegraphics{Paid amount by total earnings.png}
-
-\includegraphics{Statistical dependence of delay on gender.png}
-\includegraphics{Statistical dependence of due amount on gender.png}
-\includegraphics{Statistical dependence of paid amount on gender, product type and business discount.png}
-\includegraphics{Statistical dependence of paid amount on gender.png}
+As can be seen on Figure \ref{tab:miss-statnew}, newly-created features also contain NA values. The highest percentage of missing values has attribute \emph{mean\_delay\_12m}, almost 55 \%. Together with \emph{mean\_delay\_6m}, \emph{mean\_delay\_3m} and \emph{mean\_delay\_1m}, they are the only new attributes holding NA attributes.\\
+It is not surprising, that these attributes have the highest percentage of NAs, since they compute results only every 12/6/3/1 months. We decided to replace the NA values by 0, so they can be later used in the modeling part. We assume, that this step should not influence the models.
 
 \hypertarget{modeling}{%
 \section{Modeling}\label{modeling}}
@@ -561,11 +526,74 @@ We decided to replace the NA values by 0, so they can be later used in the model
 \hypertarget{prediction-model-21-days}{%
 \subsection{Prediction model (21+ days)}\label{prediction-model-21-days}}
 
+The goal of this classification task was to predict if the customer will be delayed in payment for 21 and more days. The expectation of our sponsor for the model was for AUC to exceed 0.7.
+
+First, we excluded delay\_140\_y (as it was deemed irrelevant for this part of modeling), delay and payment\_date (because they caused 100\% accuracy).\\
+All missing values in mean\_delay features were replaced by 0.\\
+Due to living\_area having too many levels, we used weight of evidence (WOE) to split living\_area into a set of bins (by combining categories with similar WOE) based on similarity of delay\_21\_y variable distribution. For this action, we transformed delay\_21\_y into a numeric datatype. The optimal binning for living\_area was found to be 4 and the original variable was replaced by the binned version, see Figure \ref{fig:woe21}. Finally, delay\_21\_y was transformed back to factor.
+
+We calculated information value for the independent variables, with dependent variable being delay\_21\_y . We discovered that mean\_delay\_1m, mean\_delay\_3m and contract\_id provided the most information value.
+
+The dataset was then split into training (60\%), validation (20\%) and test (20\%) datasets. We used stratified sampling to avoid missing classes in training data.
+Hypergrid was defined to tune the parameters. After fitting the model, variable importance was calculated and we discovered that mean\_delay\_1m, delay\_indiv\_21 and contract\_status5 provided the best results.
+Afterwards, we use hold-out to determine cutoff and find the best values for alpha and lambda using training data. The optimal cutoff value was found to be 43,6\%. Using alpha found in previous step, we used 5-fold cross-validation to find optimal value for lambda on validation data.\\
+The accuracy of created model is 0.8866, see Figure \ref{fig:auc21}. For confusion matrix, please refer to the table below.
+
+\begin{verbatim}
+            Confusion matrix
+        preds2      0      1
+            0 135752  18293
+            1  14608 121512
+                                      
+            Accuracy : 0.8866          
+              95% CI : (0.8855, 0.8878)
+ No Information Rate : 0.5182          
+ P-Value [Acc > NIR] : < 2.2e-16       
+                                      
+               Kappa : 0.7727        
+                                      
+    Mcnemar's Test P-Value : < 2.2e-16       
+                                      
+         Sensitivity : 0.8692          
+         Specificity : 0.9028          
+      Pos Pred Value : 0.8927          
+      Neg Pred Value : 0.8812          
+          Prevalence : 0.4818          
+      Detection Rate : 0.4188          
+Detection Prevalence : 0.4691          
+   Balanced Accuracy : 0.8860          
+                                      
+   'Positive' Class : 1
+\end{verbatim}
+
 \hypertarget{prediction-model-140-days}{%
 \subsection{Prediction model (140+ days)}\label{prediction-model-140-days}}
 
+The goal of this classification task was to predict if the customer will be delayed in payment for 140 and more days. The expectation was for AUC to exceed 0.7.
+
+We followed the same steps as for the first model, with the following differences:
+1. We excluded
+2. living\_area was split into 7 bins (using WOE)
+
+The optimal cutoff value for this model is 10.1\% and the accuracy is.
+
 \hypertarget{estimation-of-the-expected-number-of-days-of-delay-when-the-client-triggers-first-action}{%
 \subsection{Estimation of the expected number of days of delay when the client triggers first action}\label{estimation-of-the-expected-number-of-days-of-delay-when-the-client-triggers-first-action}}
+
+The goal of the last model is to estimate average number of days delayed if the client exceeds the first action.
+We are expected to create a model better than simple average model by at least 30 \%. We decided to use
+Elastic net regression model for the predictions.
+
+First step was to check the correlations of the attributes. As can be seen on Figure \ref{fig:correlogram}, higher positive correlation was discovered between \emph{due\_amount} and \emph{paid\_amount}, therefore we decided to exclude \emph{due\_amount}. We also excluded attribute \emph{due\_date}, beacuse delay was calculated as the difference between \emph{due\_date} and \emph{payment\_date}.
+We excluded also ???.
+
+In the next step, we decided to try two different approaches. Firstly, the dataset was filtered by the rows, where \emph{delay\_21\_y} is equal to 1 and the second approach predicted using the whole data. Both approaches proceeded similarly.
+
+The data was shuffled and dataset was split into training (60\%), validation (20\%) and test (20\%) datasets. We used stratified sampling to avoid missing classes in training data. Hypergrid was defined to tune the parameters. We decided to use Holdout method as well as the Cross-validation to find the optimal values of hyperparameters.
+
+By using Holdout method, the lowest RMSE was ?? and provided hyperparameters alpha = and lambda =
+
+Using 10-fold Cross Valdation the RMSE was ??? and provided hyperparameters alpha = and lambda =
 
 \hypertarget{conclusion}{%
 \section{Conclusion}\label{conclusion}}
@@ -573,8 +601,14 @@ We decided to replace the NA values by 0, so they can be later used in the model
 \hypertarget{discussion}{%
 \section{Discussion}\label{discussion}}
 
-\hypertarget{attachments}{%
-\section{Attachments}\label{attachments}}
+\hypertarget{figures}{%
+\section{Figures}\label{figures}}
+
+\begin{figure}
+\centering
+\includegraphics{Documentation_Rmarkdown_files/figure-latex/correlogram-1.pdf}
+\caption{\label{fig:correlogram}\label{fig:correlogram}Correlation plot.}
+\end{figure}
 
 \begin{figure}
 \centering
@@ -587,5 +621,152 @@ We decided to replace the NA values by 0, so they can be later used in the model
 \includegraphics{Documentation_Rmarkdown_files/figure-latex/boxplots-1.pdf}
 \caption{\label{fig:boxplots}\label{fig:boxplots}Boxplots for numeric attributes.}
 \end{figure}
+
+\begin{figure}
+\centering
+\includegraphics{Documentation_Rmarkdown_files/figure-latex/delay-gender-prod-1.pdf}
+\caption{\label{fig:delay-gender-prod}\label{fig:delay-gender-prod}Dependence of delay on gender, product type and business discount.}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics{Documentation_Rmarkdown_files/figure-latex/distribution-1.pdf}
+\caption{\label{fig:distribution}Distribution plots.}
+\end{figure}
+
+\begin{figure}
+\includegraphics[width=0.9\linewidth]{Documentation_Rmarkdown_files/figure-latex/Missing-complex-1} \caption{\label{fig:Missing-complex}Distribution of missing values.}\label{fig:Missing-complex}
+\end{figure}
+
+\begin{figure}
+\includegraphics[width=0.9\linewidth]{missing_values_plot} \caption{\label{fig:missing-H}Distribution of missing values}\label{fig:missing-H}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics{Documentation_Rmarkdown_files/figure-latex/statnewdelay-1.pdf}
+\caption{\label{fig:statnewdelay}\label{fig:stat-newdelay}Basic statistics of the added attribute delay.}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics{Documentation_Rmarkdown_files/figure-latex/statnew-1.pdf}
+\caption{\label{fig:statnew}\label{fig:stat-new}Basic statistics of the added attributes.}
+\end{figure}
+
+\begin{figure}
+\includegraphics[height=0.4\textheight]{Documentation_Rmarkdown_files/figure-latex/helpnew-1} \caption{\label{fig:help_new} Statistics of the factor added attributes.}\label{fig:helpnew}
+\end{figure}
+
+\begin{figure}
+\includegraphics[height=0.4\textheight]{Documentation_Rmarkdown_files/figure-latex/statIndiv-1} \caption{\label{fig:stat-new}Basic statistics of the added attributes.}\label{fig:statIndiv}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics{.//WOE21.png}
+\caption{\label{fig:woe21} Binning for living\_area}
+\end{figure}
+
+\begin{figure}
+\centering
+\includegraphics{.//AUC21.png}
+\caption{\label{fig:auc21} AUC}
+\end{figure}
+
+\hypertarget{tables}{%
+\section{Tables}\label{tables}}
+
+\begin{table}
+
+\caption{\label{tab:Missing-stat}Statistics of missing values.}
+\centering
+\begin{tabular}[t]{l|r|r}
+\hline
+variable & n\_miss & pct\_miss\\
+\hline
+different\_contact\_area & 471354 & 20.0319420\\
+\hline
+cf\_val & 469310 & 19.9450747\\
+\hline
+living\_area & 469015 & 19.9325375\\
+\hline
+kc\_flag & 468906 & 19.9279052\\
+\hline
+payment\_order & 83361 & 3.5427359\\
+\hline
+payment\_date & 11733 & 0.4986375\\
+\hline
+delay & 11733 & 0.4986375\\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}
+
+\caption{\label{tab:miss-statnew}Statistics of missing values of the new variables.}
+\centering
+\begin{tabular}[t]{l|r|r}
+\hline
+variable & n\_miss & pct\_miss\\
+\hline
+mean\_delay\_12m & 804268 & 55.435142\\
+\hline
+mean\_delay\_6m & 458935 & 31.632648\\
+\hline
+mean\_delay\_3m & 249422 & 17.191712\\
+\hline
+mean\_delay\_1m & 95489 & 6.581694\\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}
+
+\caption{\label{tab:Stats}Statistics summary.}
+\centering
+\begin{tabular}[t]{l|r|r|r|r|r|r|r}
+\hline
+headofTable & EX & VarX & Median & Q1 & Q3 & Min & Max\\
+\hline
+Num. of Children & 0.3257497 & 5.010432e-01 & 0 & 0 & 0 & 0 & 10\\
+\hline
+Num. Other Product & 2.1550566 & 1.981590e+00 & 2 & 1 & 3 & 1 & 13\\
+\hline
+Year of Birth & 1964.9877404 & 1.884125e+02 & 1965 & 1953 & 1976 & 1921 & 1996\\
+\hline
+Due amount & 1820.2133351 & 1.327569e+06 & 1698 & 876 & 2754 & 2 & 4360\\
+\hline
+Paid amount & 1155.5253292 & 1.006110e+06 & 1704 & 382 & 1651 & 2 & 4360\\
+\hline
+Delay & 22.1283613 & 4.693719e+04 & NA & -2 & 34 & NA & 2787\\
+\hline
+\end{tabular}
+\end{table}
+
+\begin{table}
+
+\caption{\label{tab:Statss}Statistics summary of the new variables.}
+\centering
+\begin{tabular}[t]{l|r|r|r|r|r|r|r}
+\hline
+headofTable\_new & EX\_new & VarX\_new & Median\_new & Q1\_new & Q3\_new & Min\_new & Max\_new\\
+\hline
+delay\_indiv & 25.679340 & 10196.8875 & 11.750000 & -0.4000000 & 31.31579 & -1673.000 & 1980.000\\
+\hline
+delay\_indiv\_21 & 7.068964 & 101.1708 & 2.000000 & 0.0000000 & 11.00000 & 0.000 & 60.000\\
+\hline
+delay\_indiv\_140 & 0.819534 & 9.7183 & 0.000000 & 0.0000000 & 0.00000 & 0.000 & 44.000\\
+\hline
+mean\_delay\_1m & 19.642073 & 40286.2966 & 10.000000 & -1.0000000 & 32.00000 & -1673.000 & 2068.000\\
+\hline
+mean\_delay\_3m & 16.733327 & 33096.2809 & 4.666667 & -0.3333333 & 31.33333 & -1398.000 & 1715.000\\
+\hline
+mean\_delay\_6m & 12.864224 & 25225.8353 & 0.000000 & 0.0000000 & 30.16667 & -1352.167 & 1597.500\\
+\hline
+mean\_delay\_12m & 6.883395 & 14643.2779 & 0.000000 & 0.0000000 & 22.00000 & -1260.333 & 1489.917\\
+\hline
+\end{tabular}
+\end{table}
 
 \end{document}
