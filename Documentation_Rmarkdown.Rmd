@@ -1,7 +1,7 @@
 ---
 title: "Documentation of the Payment Delays Project"
 author: "Ivana Stanova, Lenka Stastna"
-date: "1 1 2021"
+date: "10 1 2021"
 output:
   bookdown::html_document2:
     fig_caption: yes
@@ -32,7 +32,7 @@ As one of the deliverables, project documentation describes project flow. Projec
 We chose to use R studio to prepare the data, create models and evaluate, RMarkdown was used to create documentation of the project.
 
 ```{r load, eval=TRUE, include=FALSE, cache=TRUE}
-path_to_data <- "D:/Dokumenty/ŠKOLA/4IT439 Data-X – aplikované analytické datové modely v reálných úlohách/Semestrálka/payment_dates_final.csv"
+path_to_data <- "..\\payment_dates_final.csv"
 data_collection <- read.csv(path_to_data)
 data_collection <- data_collection %>%
   mutate(due_date = as.Date(due_date, format = "%Y-%m-%d"))
@@ -144,7 +144,7 @@ Secondly, we dealt with the NA values in payment_order and payment_date. Since i
 ## Feature engineering
 
 ```{r load_new_data, eval=TRUE, include=FALSE, cache=TRUE}
-data_prepared <- read.delim("D:/Dokumenty/ŠKOLA/4IT439 Data-X – aplikované analytické datové modely v reálných úlohách/Semestrálka/Data/data_collection_prepared_new.txt", header = TRUE, sep = ";", dec = ".")
+data_prepared <- read.delim("..\\data_collection_prepared_new.txt", header = TRUE, sep = ";", dec = ".")
 data_prepared <- data_prepared %>%
   mutate(delay_140_y = as.factor(delay_140_y))
 data_prepared <- data_prepared %>%
@@ -249,20 +249,26 @@ The optimal cutoff value for this model is 10.1% and the accuracy is.
 ## Estimation of the expected number of days of delay when the client triggers first action
 
 The goal of the last model is to estimate average number of days delayed if the client exceeds the first action. 
-We are expected to create a model better than simple average model by at least 30 %. We decided to use
-Elastic net regression model for the predictions. 
+We are expected to create a model better than Simple average model by at least 30 %. We decided to use
+Elastic net regression for the predictions. 
 
-First step was to check the correlations of the attributes. As can be seen on Figure \@ref(fig:correlogram), higher positive correlation was discovered between *due_amount* and *paid_amount*, therefore we decided to exclude *due_amount*. We also excluded attribute *due_date*, beacuse delay was calculated as the difference between *due_date* and *payment_date*.
-We excluded also ???. 
+First step was to check the correlations of the attributes. As can be seen on Figure \@ref(fig:correlogram), higher positive correlation was discovered between *due_amount* and *paid_amount*, therefore we decided to exclude *due_amount*. We also excluded attribute *due_date*, beacuse delay was calculated as the difference between *due_date* and *payment_date*. *Living_area* was also excluded due to its many factors and low importance.?
 
-In the next step, we decided to try two different approaches. Firstly, the dataset was filtered by the rows, where *delay_21_y* is equal to 1 and the second approach predicted using the whole data. Both approaches proceeded similarly.
+In the next step, the dataset was filtered by the rows, where *delay_21_y* is equal to 1, therefore we selected only payments with delay greater than 21 days. The data was shuffled split into training (60%), validation (20%) and test (20%) datasets. We used stratified sampling to avoid missing classes in training data. 
 
-The data was shuffled and dataset was split into training (60%), validation (20%) and test (20%) datasets. We used stratified sampling to avoid missing classes in training data. Hypergrid was defined to tune the parameters. We decided to use Holdout method as well as the Cross-validation to find the optimal values of hyperparameters.
+For the simple average model, we computed the average of trainval data and used it as a prediction on test data. The average delay of payments that exceeded the first action was **128.2179** with RMSE **213.3069**.
 
-By using Holdout method, the lowest RMSE was ?? and provided hyperparameters alpha = and lambda = 
+For the elastic net regression, hypergrid was defined to tune the parameters. We decided to use Holdout method as well as the 10-fold Cross-validation to find the optimal values of hyper parameters.
 
-Using 10-fold Cross Valdation the RMSE was ??? and provided hyperparameters alpha = and lambda = 
+|alpha|lambda|rmse_ho|rmse_cv|
+|-----|------|-------|-------|
+|0|0|53.51514|53.16496|
 
+Estimating using train and also validation data, we were able to get RMSE **51.83381**
+
+Our model exceeded the Simple average benchmark by 74 %.
+
+Variable importance of the CV regression model can be seen on Figure \@ref(fig:varIm).
 
 # Conclusion
 
@@ -1239,4 +1245,7 @@ summaryData_new <- distinct(data.frame(headofTable_new, EX_new, VarX_new, Median
                                        check.rows = FALSE, check.names = FALSE
 ))
 knitr::kable(summaryData_new, caption = "Statistics summary of the new variables.")
+```
+```{r varIm, echo=FALSE, fig.cap="\\label{fig:missing-H}Variable importance for glmnet cv", out.width = '90%'}
+knitr::include_graphics("delay_varImp.png")
 ```
