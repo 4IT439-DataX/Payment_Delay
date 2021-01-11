@@ -208,9 +208,24 @@ Significantly better than random model AUC > 0.7. In case of highly unbalanced o
 
 ## Estimation of the expected number of days of delay when the client triggers first action
 
-Estimate average number of days delayed if the client would exceed the first action. 
-Better than simple average model by at least 30%.
+The goal of the last model is to estimate average number of days delayed if the client exceeds the first action. 
+We are expected to create a model better than simple average model by at least 30 %. We decided to use
+Elastic net regression model for the predictions. 
+
+First step was to check the correlations of the attributes. As can be seen on Figure \@ref(fig:correlogram), higher positive correlation was discovered between *due_amount* and *paid_amount*, therefore we decided to exclude *due_amount*. We also excluded attribute *due_date*, beacuse delay was calculated as the difference between *due_date* and *payment_date*.
+We excluded also ???. 
+
+In the next step, we decided to try two different approaches. Firstly, the dataset was filtered by the rows, where *delay_21_y* is equal to 1 and the second approach predicted using the whole data. Both approaches proceeded similarly.
+
+The data was shuffled and dataset was split into training (60%), validation (20%) and test (20%) datasets. We used stratified sampling to avoid missing classes in training data. Hypergrid was defined to tune the parameters. We decided to use Holdout method as well as the Cross-validation to find the optimal values of hyperparameters.
+
+By using Holdout method, the lowest RMSE was ?? and provided hyperparameters alpha = and lambda = 
+
+Using 10-fold Cross Valdation the RMSE was ??? and provided hyperparameters alpha = and lambda = 
+
+
 # Conclusion
+
 # Discussion
 
 # Figures
@@ -1182,66 +1197,4 @@ summaryData_new <- distinct(data.frame(headofTable_new, EX_new, VarX_new, Median
 ))
 knitr::kable(summaryData_new, caption = "Statistics summary of the new variables.")
 ```
-
-```{r StatsAll, echo=FALSE, eval=TRUE}
-# Summary for each attribute
-data_prepared <- data_prepared %>% drop_na(delay)
-
-headofTable <- c(
-  "Num. of Children", "Num. Other Product", "Year of Birth",
-  "Due amount", "Paid amount", "Delay"
-)
-EX <- c(
-  mean(data_collection$number_of_children),
-  mean(data_collection$number_other_product), mean(data_collection$birth_year),
-  mean(data_collection$due_amount), mean(data_collection$paid_amount),
-  mean(data_prepared$delay)
-)
-VarX <- c(
-  var(data_collection$number_of_children),
-  var(data_collection$number_other_product), var(data_collection$birth_year),
-  var(data_collection$due_amount), var(data_collection$paid_amount),
-  var(data_prepared$delay)
-)
-Median <- c(
-  median(data_collection$number_of_children),
-  median(data_collection$number_other_product),
-  median(data_collection$birth_year), median(data_collection$due_amount),
-  median(data_prepared$paid_amount), median(data_collection$delay)
-)
-Q1 <- c(
-  quantile(data_collection$number_of_children, probs = 1 / 4, na.rm = TRUE),
-  quantile(data_collection$number_other_product, probs = 1 / 4, na.rm = TRUE),
-  quantile(data_collection$birth_year, probs = 1 / 4, na.rm = TRUE),
-  quantile(data_collection$due_amount, probs = 1 / 4, na.rm = TRUE),
-  quantile(data_collection$paid_amount, probs = 1 / 4, na.rm = TRUE),
-  quantile(data_prepared$delay, probs = 1 / 4, na.rm = TRUE)
-)
-Q3 <- c(
-  quantile(data_collection$number_of_children, probs = c(3 / 4), na.rm = TRUE),
-  quantile(data_collection$number_other_product, probs = c(3 / 4), na.rm = TRUE),
-  quantile(data_collection$birth_year, probs = c(3 / 4), na.rm = TRUE),
-  quantile(data_collection$due_amount, probs = c(3 / 4), na.rm = TRUE),
-  quantile(data_collection$paid_amount, probs = c(3 / 4), na.rm = TRUE),
-  quantile(data_prepared$delay, probs = 3 / 4, na.rm = TRUE)
-)
-Min <- c(
-  min(data_collection$number_of_children),
-  min(data_collection$number_other_product),
-  min(data_collection$birth_year), min(data_collection$due_amount),
-  min(data_prepared$paid_amount), min(data_collection$delay)
-)
-Max <- c(
-  max(data_collection$number_of_children),
-  max(data_collection$number_other_product), max(data_collection$birth_year),
-  max(data_collection$due_amount), max(data_collection$paid_amount),
-  max(data_prepared$delay)
-)
-summaryData <- distinct(data.frame(headofTable, EX, VarX, Median, Q1, Q3, Min,
-  Max,
-  check.rows = FALSE, check.names = FALSE
-))
-knitr::kable(summaryData, caption = "Statistics summary.")
-```
-
 
