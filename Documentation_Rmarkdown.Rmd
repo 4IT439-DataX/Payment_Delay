@@ -3,14 +3,14 @@ title: "Documentation of the Payment Delays Project"
 author: "Ivana Stanova, Lenka Stastna"
 date: "1 1 2021"
 output:
-  bookdown::pdf_document2:
-    fig_caption: yes
-    keep_tex: true
   bookdown::html_document2:
     fig_caption: yes
     toc: true
     toc_depth: 2
     number_sections: true
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: true
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, fig.width = 12, fig.height = 8)
