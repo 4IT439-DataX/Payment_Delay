@@ -3,14 +3,14 @@ title: "Documentation of the Payment Delays Project"
 author: "Ivana Stanova, Lenka Stastna"
 date: "10 1 2021"
 output:
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: true
   bookdown::html_document2:
     fig_caption: yes
     toc: true
     toc_depth: 2
     number_sections: true
-  bookdown::pdf_document2:
-    fig_caption: yes
-    keep_tex: true
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, fig.width = 12, fig.height = 8)
@@ -25,14 +25,14 @@ library(gridExtra)
 # Business Understanding
 The main topic of this data science project is to optimize the collection process. Sponsor of the project is Mr. Jiří Procházka, who decided on the scope of the project, provided data and helped define project deliverables.  
 
-First of all it was important to understand the collection process. Clients are paying certain amount due to the certain date. If the client delays his payment, certain collection procedure takes place because of the costs that rise for the company. There are three actions taking place under different conditions. If the payment is delayed for 21 - 69 days, first action is taken. Second action is taken if the delay is between 70 - 139 days and the third action is taken for delay greater than 140 days.  
+First of all, it was important to understand the collection process. Clients are paying a certain amount due to a certain date. If the client delays his payment, certain collection procedure takes place because of the costs that rise for the company. There are three actions taking place under different conditions. If the payment is delayed for 21 - 69 days, first action is taken. Second action is taken if the delay is between 70 - 139 days and the third action is taken for delay greater than 140 days.  
 Our goal was to create three models. First model predicts whether the customer will be delayed in payment for 21+ days. Second model predicts whether the customer will be delayed in payment for 140+ days. Lastly, third model should estimate the average number of days delayed if the client would exceed the first action. All three models were defined baseline accuracy, to which created models were compared.  
 
 As one of the deliverables, project documentation describes project flow. Project consisted of three major steps: Data preparation, Modeling, Evaluation. All of the phases are described in detail with visualized results and findings in this document.  
 We chose to use R studio to prepare the data, create models and evaluate, RMarkdown was used to create documentation of the project.
 
 ```{r load, eval=TRUE, include=FALSE, cache=TRUE}
-path_to_data <- "..\\payment_dates_final.csv"
+path_to_data <- "D:/Dokumenty/ŠKOLA/4IT439 Data-X – aplikované analytické datové modely v reálných úlohách/Semestrálka/payment_dates_final.csv"
 data_collection <- read.csv(path_to_data)
 data_collection <- data_collection %>%
   mutate(due_date = as.Date(due_date, format = "%Y-%m-%d"))
@@ -144,7 +144,7 @@ Secondly, we dealt with the NA values in payment_order and payment_date. Since i
 ## Feature engineering
 
 ```{r load_new_data, eval=TRUE, include=FALSE, cache=TRUE}
-data_prepared <- read.delim("..\\data_collection_prepared_new.txt", header = TRUE, sep = ";", dec = ".")
+data_prepared <- read.delim("D:/Dokumenty/ŠKOLA/4IT439 Data-X – aplikované analytické datové modely v reálných úlohách/Semestrálka/Data/data_collection_prepared_new.txt", header = TRUE, sep = ";", dec = ".")
 data_prepared <- data_prepared %>%
   mutate(delay_140_y = as.factor(delay_140_y))
 data_prepared <- data_prepared %>%
@@ -199,52 +199,45 @@ It is not surprising, that these attributes have the highest percentage of NAs, 
 
 # Modeling
 ## Prediction model (21+ days) 
-The goal of this classification task was to predict if the customer will be delayed in payment for 21 and more days. The expectation of our sponsor for the model was for AUC to exceed 0.7.  
+The goal of this classification task was to predict if the customer will be delayed in payment for 21 and more days. The expectation of our sponsor for the model was for area under the curve (AUC) to exceed 0.7.  
+We decided to use penalized logistic regression model. The simple model was chosen due to the team having little prior experience with data science. First, we excluded *delay_140_y* (as it was deemed irrelevant for this part of modeling), delay and payment_date (because they caused 100% accuracy). All missing values in *mean_delay* features were replaced by 0.  
+Due to *living_area* having too many levels, we used weight of evidence (WOE) to split living_area into a set of bins (by combining categories with similar WOE) based on similarity of *delay_21_y* variable distribution. For this action, we transformed *delay_21_y* into a numeric datatype. The optimal binning for *living_area* was found to be 4 and the original variable was replaced by the binned version, see Figure \@ref(fig:woe21). Finally, *delay_21_y* was transformed back to factor.  
 
-First, we excluded delay_140_y (as it was deemed irrelevant for this part of modeling), delay and payment_date (because they caused 100% accuracy).  
-All missing values in mean_delay features were replaced by 0.  
-Due to living_area having too many levels, we used weight of evidence (WOE) to split living_area into a set of bins (by combining categories with similar WOE) based on similarity of delay_21_y variable distribution. For this action, we transformed delay_21_y into a numeric datatype. The optimal binning for living_area was found to be 4 and the original variable was replaced by the binned version, see Figure \@ref(fig:woe21). Finally, delay_21_y was transformed back to factor.  
-
-We calculated information value for the independent variables, with dependent variable being delay_21_y . We discovered that mean_delay_1m, mean_delay_3m and contract_id provided the most information value.  
+We calculated information value for the independent variables, with dependent variable being *delay_21_y*. We discovered that *mean_delay_1m*, *mean_delay_3m*, *contract_id*, *mean_delay_6m* and *delay_indiv* provided the most information value.  
 
 The dataset was then split into training (60%), validation (20%) and test (20%) datasets. We used stratified sampling to avoid missing classes in training data.
-Hypergrid was defined to tune the parameters. After fitting the model, variable importance was calculated and we discovered that mean_delay_1m, delay_indiv_21 and contract_status5 provided the best results.
-Afterwards, we use hold-out to determine cutoff and find the best values for alpha and lambda using training data. The optimal cutoff value was found to be 43,6%. Using alpha found in previous step, we used 5-fold cross-validation to find optimal value for lambda on validation data.  
-The accuracy of created model is 0.8866, see Figure \@ref(fig:auc21). For confusion matrix, please refer to the table below.
+Hypergrid was defined to tune the parameters. After fitting the model, variable importance was calculated and we discovered that *mean_delay_1m*, *delay_indiv_21*, *contract_status5*, *delay_indiv_140* and *delay_indiv* provided the best results.
+Afterwards, we used hold-out to determine cutoff and to find the best values for alpha and lambda using training data. The optimal cutoff value was found to be 43.7%. Using alpha found in the previous step, we used 5-fold cross-validation to find optimal value for lambda (using validation data).  
+The accuracy of created model is 0.8866 and the AUC is 0.946, see Figure \@ref(fig:auc21). For confusion matrix, sensitivity and specificity, please refer to the table below.
 
                 Confusion matrix
             preds2      0      1
                 0 135752  18293
                 1  14608 121512
-                                          
-                Accuracy : 0.8866          
-                  95% CI : (0.8855, 0.8878)
-     No Information Rate : 0.5182          
-     P-Value [Acc > NIR] : < 2.2e-16       
-                                          
-                   Kappa : 0.7727        
-                                          
-        Mcnemar's Test P-Value : < 2.2e-16       
-                                          
-             Sensitivity : 0.8692          
-             Specificity : 0.9028          
-          Pos Pred Value : 0.8927          
-          Neg Pred Value : 0.8812          
-              Prevalence : 0.4818          
-          Detection Rate : 0.4188          
-    Detection Prevalence : 0.4691          
-       Balanced Accuracy : 0.8860          
-                                          
-       'Positive' Class : 1
+                
+            Sensitivity : 0.8692          
+            Specificity : 0.9028 
 
 ## Prediction model (140+ days) 
 The goal of this classification task was to predict if the customer will be delayed in payment for 140 and more days. The expectation was for AUC to exceed 0.7.
 
-We followed the same steps as for the first model, with the following differences:
-1. We excluded
-2. living_area was split into 7 bins (using WOE)
+First, we excluded *delay_21_y* (as it was deemed irrelevant for this part of modeling), delay and payment_date (because they caused 100% accuracy). All missing values in *mean_delay* features were replaced by 0.  
+Due to *living_area* having too many levels, we used weight of evidence (WOE) to split *living_area* into a set of bins (by combining categories with similar WOE) based on similarity of *delay_140_y* variable distribution. For this action, we transformed *delay_140_y* into a numeric datatype. The optimal binning for *living_area* was found to be 7 and the original variable was replaced by the binned version, see Figure \@ref(fig:woe140). Finally, *delay_140_y* was transformed back to factor.  
 
-The optimal cutoff value for this model is 10.1% and the accuracy is.
+We calculated information value for the independent variables, with dependent variable being *delay_140_y* . We discovered that *mean_delay_1m*, *mean_delay_3m*, *mean_delay_6m*, *delay_indiv_140* and *delay_indiv* provided the most information value.  
+
+The dataset was then split into training (60%), validation (20%) and test (20%) datasets. We used stratified sampling to avoid missing classes in training data.
+Hypergrid was defined to tune the parameters. After fitting the model, variable importance was calculated and we discovered that *mean_delay_1m*, *contract_status6*, *contract_status8*, *delay_indiv_140* and *delay_indiv* provided the best results.  
+Afterwards, we used hold-out to determine cutoff and to find the best values for alpha and lambda using training data. The optimal cutoff value was found to be 15.1%. Using alpha found in the previous step, we used 5-fold cross-validation to find optimal value for lambda (using validation data).  
+The accuracy of created model is 96.65%, and the AUC is 0.974 see Figure \@ref(fig:auc140). For confusion matrix, sensitivity and specificity, please refer to the table below.
+
+                Confusion matrix
+            preds2    0     1
+                0 256849  3524
+                1  6194  23598
+            
+            Sensitivity : 0.87007         
+            Specificity : 0.97645 
 
 ## Estimation of the expected number of days of delay when the client triggers first action
 
@@ -252,7 +245,7 @@ The goal of the last model is to estimate average number of days delayed if the 
 We are expected to create a model better than Simple average model by at least 30 %. We decided to use
 Elastic net regression for the predictions. 
 
-First step was to check the correlations of the attributes. As can be seen on Figure \@ref(fig:correlogram), higher positive correlation was discovered between *due_amount* and *paid_amount*, therefore we decided to exclude *due_amount*. We also excluded attribute *due_date*, beacuse delay was calculated as the difference between *due_date* and *payment_date*. *Living_area* was also excluded due to its many factors and low importance.?
+First step was to check the correlations of the attributes. As can be seen on Figure \@ref(fig:correlogram), higher positive correlation was discovered between *due_amount* and *paid_amount*, therefore we decided to exclude *due_amount*. We also excluded attribute *due_date*, because delay was calculated as the difference between *due_date* and *payment_date*. *Living_area* was also excluded due to its many factors and low importance.
 
 In the next step, the dataset was filtered by the rows, where *delay_21_y* is equal to 1, therefore we selected only payments with delay greater than 21 days. The data was shuffled split into training (60%), validation (20%) and test (20%) datasets. We used stratified sampling to avoid missing classes in training data. 
 
@@ -266,7 +259,7 @@ For the elastic net regression, hypergrid was defined to tune the parameters. We
 
 Estimating using train and also validation data, we were able to get RMSE **51.83381**
 
-Our model exceeded the Simple average benchmark by 74 %.
+Our model exceeded the Simple average benchmark by 74%.
 
 Variable importance of the CV regression model can be seen on Figure \@ref(fig:varIm).
 
@@ -1098,6 +1091,10 @@ statistics_plots <- grid.arrange(grobs = statistics_plots, ncol = 2)
 ![(#fig:woe21) Binning for living_area](.//WOE21.png)
 
 ![(#fig:auc21) AUC](.//AUC21.png)
+
+![(#fig:woe140) Binning for living_area](.//WOE140.png)
+
+![(#fig:auc140) AUC](.//AUC140.png)
 
 # Tables
 
