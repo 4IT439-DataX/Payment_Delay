@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.17 (MiKTeX 2.9 64-bit) (preloaded format=pdflatex 2016.10.21)  12 JAN 2021 17:59
+This is pdfTeX, Version 3.14159265-2.6-1.40.17 (MiKTeX 2.9 64-bit) (preloaded format=pdflatex 2016.10.21)  13 JAN 2021 00:42
 entering extended mode
 **./Documentation_Rmarkdown.tex
 (Documentation_Rmarkdown.tex
@@ -861,7 +861,13 @@ LaTeX Warning: Label `fig:missing-H' multiply defined.
 LaTeX Warning: Label `fig:stat-new' multiply defined.
 
 
-LaTeX Warning: Label `fig:missing-H' multiply defined.
+LaTeX Warning: Label `fig:varIm' multiply defined.
+
+
+LaTeX Warning: Label `fig:varIm21' multiply defined.
+
+
+LaTeX Warning: Label `fig:varIm21' multiply defined.
 
 )
 \openout1 = `Documentation_Rmarkdown.aux'.
@@ -1034,158 +1040,179 @@ LaTeX Font Info:    Try loading font information for T1+lmtt on input line 540.
 
 ("D:\Software\MiKTeX 2.9\tex\latex\lm\t1lmtt.fd"
 File: t1lmtt.fd 2009/10/30 v1.6 Font defs for Latin Modern
-) [6]
-<Documentation_Rmarkdown_files/figure-latex/correlogram-1.pdf, id=135, 867.24pt
+) [6] [7]
+<Documentation_Rmarkdown_files/figure-latex/correlogram-1.pdf, id=147, 867.24pt
  x 578.16pt>
 File: Documentation_Rmarkdown_files/figure-latex/correlogram-1.pdf Graphic file
  (type pdf)
 <use Documentation_Rmarkdown_files/figure-latex/correlogram-1.pdf>
 Package pdftex.def Info: Documentation_Rmarkdown_files/figure-latex/correlogram
--1.pdf used on input line 616.
+-1.pdf used on input line 627.
 (pdftex.def)             Requested size: 469.75827pt x 313.17216pt.
 
-<Documentation_Rmarkdown_files/figure-latex/density-1.pdf, id=136, 867.24pt x 5
+<Documentation_Rmarkdown_files/figure-latex/density-1.pdf, id=148, 867.24pt x 5
 78.16pt>
 File: Documentation_Rmarkdown_files/figure-latex/density-1.pdf Graphic file (ty
 pe pdf)
 <use Documentation_Rmarkdown_files/figure-latex/density-1.pdf>
 Package pdftex.def Info: Documentation_Rmarkdown_files/figure-latex/density-1.p
-df used on input line 622.
+df used on input line 633.
 (pdftex.def)             Requested size: 469.75827pt x 313.17216pt.
 
-<Documentation_Rmarkdown_files/figure-latex/boxplots-1.pdf, id=137, 867.24pt x 
+<Documentation_Rmarkdown_files/figure-latex/boxplots-1.pdf, id=149, 867.24pt x 
 578.16pt>
 File: Documentation_Rmarkdown_files/figure-latex/boxplots-1.pdf Graphic file (t
 ype pdf)
 <use Documentation_Rmarkdown_files/figure-latex/boxplots-1.pdf>
 Package pdftex.def Info: Documentation_Rmarkdown_files/figure-latex/boxplots-1.
-pdf used on input line 628.
+pdf used on input line 639.
 (pdftex.def)             Requested size: 469.75827pt x 313.17216pt.
 
-<Documentation_Rmarkdown_files/figure-latex/delay-gender-prod-1.pdf, id=138, 86
+<Documentation_Rmarkdown_files/figure-latex/delay-gender-prod-1.pdf, id=150, 86
 7.24pt x 578.16pt>
 File: Documentation_Rmarkdown_files/figure-latex/delay-gender-prod-1.pdf Graphi
 c file (type pdf)
 <use Documentation_Rmarkdown_files/figure-latex/delay-gender-prod-1.pdf>
 Package pdftex.def Info: Documentation_Rmarkdown_files/figure-latex/delay-gende
-r-prod-1.pdf used on input line 634.
+r-prod-1.pdf used on input line 645.
 (pdftex.def)             Requested size: 469.75827pt x 313.17216pt.
 
-<Documentation_Rmarkdown_files/figure-latex/distribution-1.pdf, id=139, 867.24p
+<Documentation_Rmarkdown_files/figure-latex/distribution-1.pdf, id=151, 867.24p
 t x 578.16pt>
 File: Documentation_Rmarkdown_files/figure-latex/distribution-1.pdf Graphic fil
 e (type pdf)
 <use Documentation_Rmarkdown_files/figure-latex/distribution-1.pdf>
 Package pdftex.def Info: Documentation_Rmarkdown_files/figure-latex/distributio
-n-1.pdf used on input line 640.
+n-1.pdf used on input line 651.
 (pdftex.def)             Requested size: 469.75827pt x 313.17216pt.
 
-<Documentation_Rmarkdown_files/figure-latex/Missing-complex-1.pdf, id=140, 867.
+<Documentation_Rmarkdown_files/figure-latex/Missing-complex-1.pdf, id=152, 867.
 24pt x 578.16pt>
 File: Documentation_Rmarkdown_files/figure-latex/Missing-complex-1.pdf Graphic 
 file (type pdf)
 <use Documentation_Rmarkdown_files/figure-latex/Missing-complex-1.pdf>
 Package pdftex.def Info: Documentation_Rmarkdown_files/figure-latex/Missing-com
-plex-1.pdf used on input line 645.
+plex-1.pdf used on input line 656.
 (pdftex.def)             Requested size: 422.78111pt x 281.85406pt.
-<missing_values_plot.png, id=141, 903.375pt x 677.53125pt>
+<missing_values_plot.png, id=153, 903.375pt x 677.53125pt>
 File: missing_values_plot.png Graphic file (type png)
 <use missing_values_plot.png>
-Package pdftex.def Info: missing_values_plot.png used on input line 649.
+Package pdftex.def Info: missing_values_plot.png used on input line 660.
 (pdftex.def)             Requested size: 422.78056pt x 317.0854pt.
 
-<Documentation_Rmarkdown_files/figure-latex/statnewdelay-1.pdf, id=142, 867.24p
+<Documentation_Rmarkdown_files/figure-latex/statnewdelay-1.pdf, id=154, 867.24p
 t x 578.16pt>
 File: Documentation_Rmarkdown_files/figure-latex/statnewdelay-1.pdf Graphic fil
 e (type pdf)
 <use Documentation_Rmarkdown_files/figure-latex/statnewdelay-1.pdf>
 Package pdftex.def Info: Documentation_Rmarkdown_files/figure-latex/statnewdela
-y-1.pdf used on input line 654.
+y-1.pdf used on input line 665.
 (pdftex.def)             Requested size: 469.75827pt x 313.17216pt.
 
-<Documentation_Rmarkdown_files/figure-latex/statnew-1.pdf, id=143, 867.24pt x 5
+<Documentation_Rmarkdown_files/figure-latex/statnew-1.pdf, id=155, 867.24pt x 5
 78.16pt>
 File: Documentation_Rmarkdown_files/figure-latex/statnew-1.pdf Graphic file (ty
 pe pdf)
 <use Documentation_Rmarkdown_files/figure-latex/statnew-1.pdf>
 Package pdftex.def Info: Documentation_Rmarkdown_files/figure-latex/statnew-1.p
-df used on input line 660.
+df used on input line 671.
 (pdftex.def)             Requested size: 469.75827pt x 313.17216pt.
 
-<Documentation_Rmarkdown_files/figure-latex/helpnew-1.pdf, id=144, 867.24pt x 5
+<Documentation_Rmarkdown_files/figure-latex/helpnew-1.pdf, id=156, 867.24pt x 5
 78.16pt>
 File: Documentation_Rmarkdown_files/figure-latex/helpnew-1.pdf Graphic file (ty
 pe pdf)
 <use Documentation_Rmarkdown_files/figure-latex/helpnew-1.pdf>
 Package pdftex.def Info: Documentation_Rmarkdown_files/figure-latex/helpnew-1.p
-df used on input line 665.
+df used on input line 676.
 (pdftex.def)             Requested size: 390.24117pt x 260.16077pt.
 
-<Documentation_Rmarkdown_files/figure-latex/statIndiv-1.pdf, id=145, 867.24pt x
+<Documentation_Rmarkdown_files/figure-latex/statIndiv-1.pdf, id=157, 867.24pt x
  578.16pt>
 File: Documentation_Rmarkdown_files/figure-latex/statIndiv-1.pdf Graphic file (
 type pdf)
 <use Documentation_Rmarkdown_files/figure-latex/statIndiv-1.pdf>
 Package pdftex.def Info: Documentation_Rmarkdown_files/figure-latex/statIndiv-1
-.pdf used on input line 669.
+.pdf used on input line 680.
 (pdftex.def)             Requested size: 390.24117pt x 260.16077pt.
-<.//WOE21.png, id=146, 1138.2525pt x 516.42938pt>
+<.//WOE21.png, id=158, 1138.2525pt x 516.42938pt>
 File: .//WOE21.png Graphic file (type png)
 <use .//WOE21.png>
-Package pdftex.def Info: .//WOE21.png used on input line 674.
+Package pdftex.def Info: .//WOE21.png used on input line 685.
 (pdftex.def)             Requested size: 469.76074pt x 213.13219pt.
-<.//AUC21.png, id=147, 985.43156pt x 516.42938pt>
+<.//AUC21.png, id=159, 985.43156pt x 516.42938pt>
 File: .//AUC21.png Graphic file (type png)
 <use .//AUC21.png>
-Package pdftex.def Info: .//AUC21.png used on input line 680.
+Package pdftex.def Info: .//AUC21.png used on input line 691.
 (pdftex.def)             Requested size: 469.7539pt x 246.18118pt.
-<.//WOE140.png, id=148, 1138.2525pt x 516.42938pt>
+<.//WOE140.png, id=160, 1056.19594pt x 583.42969pt>
 File: .//WOE140.png Graphic file (type png)
 <use .//WOE140.png>
-Package pdftex.def Info: .//WOE140.png used on input line 686.
-(pdftex.def)             Requested size: 469.76074pt x 213.13219pt.
-<.//AUC140.png, id=149, 684.30656pt x 583.42969pt>
+Package pdftex.def Info: .//WOE140.png used on input line 697.
+(pdftex.def)             Requested size: 469.75592pt x 259.4874pt.
+<.//AUC140.png, id=161, 684.30656pt x 583.42969pt>
 File: .//AUC140.png Graphic file (type png)
 <use .//AUC140.png>
-Package pdftex.def Info: .//AUC140.png used on input line 692.
+Package pdftex.def Info: .//AUC140.png used on input line 703.
 (pdftex.def)             Requested size: 469.77045pt x 400.51936pt.
+<.//lift21.png, id=162, 985.43156pt x 516.42938pt>
+File: .//lift21.png Graphic file (type png)
+<use .//lift21.png>
+Package pdftex.def Info: .//lift21.png used on input line 709.
+(pdftex.def)             Requested size: 469.7539pt x 246.18118pt.
+<.//lift140.png, id=163, 684.30656pt x 583.42969pt>
+File: .//lift140.png Graphic file (type png)
+<use .//lift140.png>
+Package pdftex.def Info: .//lift140.png used on input line 715.
+(pdftex.def)             Requested size: 469.77045pt x 400.51936pt.
+<delay_varImp.png, id=164, 1176.64594pt x 666.23906pt>
+File: delay_varImp.png Graphic file (type png)
+<use delay_varImp.png>
+Package pdftex.def Info: delay_varImp.png used on input line 720.
+(pdftex.def)             Requested size: 422.76633pt x 239.37823pt.
+<varimp21.png, id=165, 370.548pt x 217.467pt>
+File: varimp21.png Graphic file (type png)
+<use varimp21.png>
+Package pdftex.def Info: varimp21.png used on input line 724.
+(pdftex.def)             Requested size: 370.5697pt x 217.4797pt.
+<varimp140.png, id=166, 370.548pt x 217.467pt>
+File: varimp140.png Graphic file (type png)
+<use varimp140.png>
+Package pdftex.def Info: varimp140.png used on input line 728.
+(pdftex.def)             Requested size: 370.5697pt x 217.4797pt.
 
-Overfull \hbox (23.77243pt too wide) in paragraph at lines 770--789
+Overfull \hbox (23.77243pt too wide) in paragraph at lines 805--824
  [][] 
  []
 
-<delay_varImp.png, id=150, 1176.64594pt x 666.23906pt>
-File: delay_varImp.png Graphic file (type png)
-<use delay_varImp.png>
-Package pdftex.def Info: delay_varImp.png used on input line 791.
-(pdftex.def)             Requested size: 422.76633pt x 239.37823pt.
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 794.
-[7] [8 <./Documentation_Rmarkdown_files/figure-latex/correlogram-1.pdf>] [9 <./
-Documentation_Rmarkdown_files/figure-latex/density-1.pdf>] [10 <./Documentation
-_Rmarkdown_files/figure-latex/boxplots-1.pdf>] [11 <./Documentation_Rmarkdown_f
-iles/figure-latex/delay-gender-prod-1.pdf>] [12 <./Documentation_Rmarkdown_file
-s/figure-latex/distribution-1.pdf>] [13 <./Documentation_Rmarkdown_files/figure
--latex/Missing-complex-1.pdf>] [14 <./missing_values_plot.png>] [15 <./Document
-ation_Rmarkdown_files/figure-latex/statnewdelay-1.pdf>] [16 <./Documentation_Rm
-arkdown_files/figure-latex/statnew-1.pdf> <./Documentation_Rmarkdown_files/figu
-re-latex/helpnew-1.pdf>] [17 <./Documentation_Rmarkdown_files/figure-latex/stat
-Indiv-1.pdf> <.//WOE21.png>] [18 <.//AUC21.png> <.//WOE140.png>] [19 <.//AUC140
-.png>] [20 <./delay_varImp.png>]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 794.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 826.
+[8] [9 <./Documentation_Rmarkdown_files/figure-latex/correlogram-1.pdf>] [10 <.
+/Documentation_Rmarkdown_files/figure-latex/density-1.pdf>] [11 <./Documentatio
+n_Rmarkdown_files/figure-latex/boxplots-1.pdf>] [12 <./Documentation_Rmarkdown_
+files/figure-latex/delay-gender-prod-1.pdf>] [13 <./Documentation_Rmarkdown_fil
+es/figure-latex/distribution-1.pdf>] [14 <./Documentation_Rmarkdown_files/figur
+e-latex/Missing-complex-1.pdf>] [15 <./missing_values_plot.png>] [16 <./Documen
+tation_Rmarkdown_files/figure-latex/statnewdelay-1.pdf>] [17 <./Documentation_R
+markdown_files/figure-latex/statnew-1.pdf> <./Documentation_Rmarkdown_files/fig
+ure-latex/helpnew-1.pdf>] [18 <./Documentation_Rmarkdown_files/figure-latex/sta
+tIndiv-1.pdf> <.//WOE21.png>] [19 <.//AUC21.png> <.//WOE140.png>] [20 <.//AUC14
+0.png>] [21 <.//lift21.png>] [22 <.//lift140.png>] [23 <./delay_varImp.png> <./
+varimp21.png>] [24 <./varimp140.png>]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 826.
 (Documentation_Rmarkdown.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 794.
-Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 794.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 826.
+Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 826.
 
 LaTeX Warning: There were multiply-defined labels.
 
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 794.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 826.
  ) 
 Here is how much of TeX's memory you used:
- 13866 strings out of 493334
- 199609 string characters out of 3141398
- 322566 words of memory out of 3000000
- 16948 multiletter control sequences out of 15000+200000
- 61919 words of font info for 132 fonts, out of 3000000 for 9000
+ 13906 strings out of 493334
+ 200153 string characters out of 3141398
+ 324318 words of memory out of 3000000
+ 16968 multiletter control sequences out of 15000+200000
+ 62428 words of font info for 138 fonts, out of 3000000 for 9000
  1141 hyphenation exceptions out of 8191
  35i,8n,38p,1114b,458s stack positions out of 5000i,500n,10000p,200000b,50000s
 {D:/Software/MiKTeX 2.9/fonts/enc/dvips/lm/lm-ec.enc}{D:/Software/MiKTeX 2.9/
@@ -1195,9 +1222,9 @@ iKTeX 2.9/fonts/type1/public/lm/lmr10.pfb><D:/Software/MiKTeX 2.9/fonts/type1/p
 ublic/lm/lmr12.pfb><D:/Software/MiKTeX 2.9/fonts/type1/public/lm/lmr17.pfb><D:/
 Software/MiKTeX 2.9/fonts/type1/public/lm/lmri10.pfb><D:/Software/MiKTeX 2.9/fo
 nts/type1/public/lm/lmtt10.pfb>
-Output written on Documentation_Rmarkdown.pdf (20 pages, 35391716 bytes).
+Output written on Documentation_Rmarkdown.pdf (24 pages, 35526692 bytes).
 PDF statistics:
- 371 PDF objects out of 1000 (max. 8388607)
- 91 named destinations out of 1000 (max. 500000)
- 30921 words of extra memory for PDF output out of 35830 (max. 10000000)
+ 403 PDF objects out of 1000 (max. 8388607)
+ 99 named destinations out of 1000 (max. 500000)
+ 30941 words of extra memory for PDF output out of 35830 (max. 10000000)
 
