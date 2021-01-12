@@ -666,3 +666,5 @@ coverage[[13]] <- ggplot(data = data_collection, aes(x = kzmz_flag)) +
   theme(axis.text.x = element_text(angle = 0, hjust = 1))
 coverage <- grid.arrange(grobs = coverage, ncol = 3)
 ```
+
+

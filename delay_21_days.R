@@ -36,7 +36,7 @@ setwd("C:/Users/tung.tran/Desktop/Prednasky-cvika/Data X/Data set - projekt/phas
 
 
 #load data
-data_collection <- read.delim("data_collection_prepared_final.txt", sep = ";", dec = ".")
+data_collection <- read.delim("D:/Dokumenty/ŠKOLA/4IT439 Data-X – aplikované analytické datové modely v reálných úlohách/Semestrálka/Data/data_collection_prepared_new.txt", sep = ";", dec = ".")
 
 
 # Convert columns to the correct data type

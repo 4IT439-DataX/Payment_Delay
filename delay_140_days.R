@@ -38,7 +38,7 @@ pred.class = function(preds_probs, cut.off){
 }
 
 #load data
-data_collection <- read.delim("data_collection_prepared_final.txt", sep = ";", dec = ".")
+data_collection <- read.delim("data_collection_prepared_new.txt", sep = ";", dec = ".")
 
 
 # Convert columns to the correct data type
