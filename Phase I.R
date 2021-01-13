@@ -22,7 +22,7 @@ library(gridExtra)
 
 # Put data files outside of the git folder in order to avoid pushing too large
 # files to repository
-path_to_data <- "D:/Dokumenty/ŠKOLA/4IT439 Data-X – aplikované analytické datové modely v reálných úlohách/Semestrálka/payment_dates_final.csv"
+path_to_data <- "payment_dates_final.csv"
 data_collection <- read.csv(path_to_data)
 
 # Data understanding -----------------------------------------------------------
@@ -117,7 +117,7 @@ apply(data_total, 2, function(x) any(is.na(x)))
 # graphically show how many N/A's we have in our new Dataset
 # vis_miss(data_total, warn_large_data=FALSE)
 
-# droping N/A's in remaining three columns, because it was less then 0.1% of dataset
+# dropping N/A's in remaining three columns, because it was less then 0.1% of dataset
 data_final <- data_total %>% drop_na(living_area, different_contact_area, cf_val)
 
 # test that data_final doesn't contain any N/A's

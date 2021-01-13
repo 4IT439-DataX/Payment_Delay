@@ -35,7 +35,7 @@ library(lares)
 
 
 #load data
-data_collection <- read.delim("data_collection_prepared_v2.txt", sep = ";", dec = ".")
+data_collection <- read.delim("data_collection_prepared.txt", sep = ";", dec = ".")
 #str(data_collection)
 
 
