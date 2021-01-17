@@ -87,7 +87,7 @@ data_collection <- data_collection %>%
 
 
 ### filter delayed 2 or more times
-# data_collection <- filter(data_collection, delay_indiv_140 < 2)
+data_collection <- filter(data_collection, delay_indiv_21 < 2)
 
 
 
@@ -120,7 +120,7 @@ IV_values <- iv(dt = data_collection,y = "delay_140_y")
 
 #adding woe values to dataset
 data_collection$living_area_woah<-paste(WOE_temp$living_area_woe)
-data_collection = data_collection[,-4] #living_area 
+data_collection = data_collection[,-3] #living_area 
 # back to factor
 data_collection <- data_collection %>%
   mutate(delay_140_y = as.factor(delay_140_y))
