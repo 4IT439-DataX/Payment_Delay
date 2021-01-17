@@ -34,6 +34,7 @@ library(vip)   # for partial importance plots
 rm(list = ls()) #clear
 cat(rep("\n",128)) #quick and dirty clear console
 
+######################### Prepare the data ####################################
 setwd("C:/Users/tung.tran/Desktop/Prednasky-cvika/Data X/Data set - projekt/phase2")
 
 
@@ -87,7 +88,7 @@ data_collection <- data_collection %>%
 data_collection <- data_collection %>%
   mutate(delay_21_y = as.numeric(delay_21_y))
 
-#filter - 0,1,2 delays only
+# Predicting on a smaller history of delays greater than 21 for a contract
 data_collection <- filter(data_collection, delay_indiv_21 < 2)
 
 
@@ -156,8 +157,7 @@ hyper_grid <- expand.grid(
   acc_cv = NA #for cross validation
 )
 
-########### stepwise and var importance
-# NOTE!!! Stepwise() and varImp() can be used only with LM or GLM type object
+###################### stepwise and var importance #############################
 #set the formula
 formula_mod = formula(delay_21_y ~ .) # "." - dot denotes all other variables from data frame
 #fit the model using the glm function
@@ -172,7 +172,7 @@ imp <- data.frame(overall = imp$Overall,
                   variables   = rownames(imp))
 imp[order(imp$overall,decreasing = T),]
 
-########### HOLDOUT ################
+################################## HOLDOUT #####################################
 #get estimate of the validation error for each couple on the grid
 for(i in 1:nrow(hyper_grid)){
   # Fit elastic net regression
@@ -222,40 +222,8 @@ preds = predict(
 cutoff_roc = pROC::roc(response = data_val$delay_21_y, predictor=preds)
 temp_cut <- coords(cutoff_roc, "best")
 optimal_cutoff <- temp_cut[1,1]
-# 
-# SMAZAT NEBO NECHAT!!!
-# 
-# #fitting 
-# fit_elnet_reg_hoe <- glmnet(
-#   x = data_model_matrix_trainval,
-#   y = data_trainval$delay_21_y,
-#   alpha = hyper_grid[opt_row_ho,"alpha"],
-#   lambda = hyper_grid[opt_row_ho,"lambda"],
-#   standardize = TRUE,
-#   intercept = TRUE,
-#   family = "binomial",
-#   trace = TRUE)
-# 
-# 
-# #calcualte predictions
-# preds_prob = predict(
-#   object = fit_elnet_reg_hoe,
-#   newx =  data_model_matrix_test,
-#   type = "response")
-# #set cut off to 50%
-# preds1 <- ifelse(preds_prob[,1]>optimal_cutoff, "1", "0")
-# #calculate accuracy
-# Metrics::accuracy(data_test$delay_21_y, preds1)
-# 
-# # ROC curve, AUC
-# conf.mat = confusionMatrix(table(preds1, data_test$delay_21_y), positive = "1")
-# logist_sensitivity = conf.mat$byClass["Sensitivity"]
-# logist_specifity = conf.mat$byClass["Specificity"]
-# s.logist.roc = pROC::roc(response = data_test$delay_21_y, predictor=preds_prob, plot = TRUE, print.auc = TRUE)
-# abline(v = logist_specifity, h = logist_sensitivity, col = 'red', lty = "dotted")
 
-
-########### CROSS VALIDATION ################
+############################## CROSS VALIDATION ################################
 #only provides validation for different lambdas and alpha fixed
 
 #using alpha opimized in ho
@@ -299,7 +267,3 @@ plot(AUC::sensitivity(preds_prob2, data_test$delay_21_y))
 plot(AUC::specificity(preds_prob2, data_test$delay_21_y), add = T)
 plot(AUC::specificity(preds_prob2, data_test$delay_21_y))
 plot(AUC::sensitivity(preds_prob2, data_test$delay_21_y))
-
-#varImp
-library(vip)    # for partial importance plots
-vip(fit_elnet_cvp, bar = FALSE, horizontal = FALSE, size = 1)

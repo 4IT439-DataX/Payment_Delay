@@ -1068,7 +1068,6 @@ print(variables_miss)
 # 1173 payment date missing, not yet paid
 gg_miss_var(data_collection)
 
-
 # more characteristics missing at the same time
 data_collection %>%
   gg_miss_var(facet = total_earnings)
@@ -1089,64 +1088,8 @@ for (i in c(1:ncol)) {
   }
 }
 
-# Data preparation -------------------------------------------------------------
-# Clean the data - estimation of missing data
-# Removing missing values
-data_collection <- read.csv(path_to_data)
 
-# Data understanding -----------------------------------------------------------
-# Data description =============================================================
-# Data volume (number of rows and columns)
-nrow <- nrow(data_collection)
-ncol <- ncol(data_collection)
-
-# Convert columns to the correct data type
-data_collection <- data_collection %>%
-  mutate(due_date = as.Date(due_date, format = "%Y-%m-%d"))
-data_collection <- data_collection %>%
-  mutate(payment_date = as.Date(payment_date, format = "%Y-%m-%d"))
-data_collection <- data_collection %>%
-  mutate(product_type = as.factor(product_type))
-data_collection <- data_collection %>%
-  mutate(contract_status = as.factor(contract_status))
-data_collection <- data_collection %>%
-  mutate(business_discount = as.factor(business_discount))
-data_collection <- data_collection %>%
-  mutate(gender = as.factor(gender))
-data_collection <- data_collection %>%
-  mutate(marital_status = as.factor(marital_status))
-data_collection <- data_collection %>%
-  mutate(clients_phone = as.factor(clients_phone))
-data_collection <- data_collection %>%
-  mutate(client_mobile = as.factor(client_mobile))
-data_collection <- data_collection %>%
-  mutate(client_email = as.factor(client_email))
-data_collection <- data_collection %>%
-  mutate(total_earnings = factor(total_earnings, labels = c(
-    "level1", "level2", "level3", "level4",
-    "level5", "level6", "level7", "level8",
-    "level9", "level10", "not_declared"
-  )))
-data_collection <- data_collection %>%
-  mutate(living_area = as.factor(living_area))
-data_collection <- data_collection %>%
-  mutate(different_contact_area = as.factor(different_contact_area))
-data_collection <- data_collection %>%
-  mutate(kc_flag = as.factor(kc_flag))
-data_collection <- data_collection %>%
-  mutate(cf_val = as.numeric(cf_val))
-data_collection <- data_collection %>%
-  mutate(kzmz_flag = as.factor(kzmz_flag))
-data_collection <- data_collection %>%
-  mutate(due_amount = as.numeric(due_amount))
-data_collection <- data_collection %>%
-  mutate(paid_amount = as.numeric(payed_ammount))
-
-# Remove feature "payed_ammount" which was replaced by feature "paid_amount"
-data_collection <- subset(data_collection, select = -payed_ammount)
-
-# Clearing N/A values ----------------------------------------------------------
-
+# Handling missing values ======================================================
 # Delete NAs in columns payment_order and payment_date
 data_collection <- data_collection %>% drop_na(payment_order, payment_date)
 
@@ -1353,8 +1296,8 @@ data_collection <- data_collection %>%
 # Write data to .txt for model creation
 write.table(data_collection, file = "data_collection_prepared.txt", sep = ";")
 
-###
-# Summary statistics of the data
+
+# Summary statistics of the new dataset data
 summary <- summary(data_collection)
 detailed_statistics <- skim(data_collection)
 

@@ -33,6 +33,8 @@ library(vip)   # for partial importance plots
 rm(list = ls()) #clear
 cat(rep("\n",128)) #quick and dirty clear console
 
+
+######################### Prepare the data #####################################
 setwd("C:/Users/tung.tran/Desktop/Prednasky-cvika/Data X/Data set - projekt/phase2")
 
 #load data
@@ -80,15 +82,10 @@ data_collection <- data_collection %>%
   mutate(kzmz_flag = as.factor(kzmz_flag))
 data_collection <- data_collection %>%
   mutate(due_amount = as.numeric(due_amount))
-# in order to hit the woah hard enough -> delay_140_y has to be numeric
+# in order to hitting the woah hard enough -> delay_140_y has to be numeric
 # its change back to factor later
 data_collection <- data_collection %>%
   mutate(delay_140_y = as.numeric(delay_140_y))
-
-
-### filter delayed 2 or more times
-data_collection <- filter(data_collection, delay_indiv_21 < 2)
-
 
 
 # # Get rid of irrelevant columns
@@ -120,7 +117,7 @@ IV_values <- iv(dt = data_collection,y = "delay_140_y")
 
 #adding woe values to dataset
 data_collection$living_area_woah<-paste(WOE_temp$living_area_woe)
-data_collection = data_collection[,-3] #living_area 
+data_collection = data_collection[,-4] #living_area 
 # back to factor
 data_collection <- data_collection %>%
   mutate(delay_140_y = as.factor(delay_140_y))
@@ -140,8 +137,6 @@ train_index <- createDataPartition(data_trainval$delay_140_y, p = .75, list = FA
 data_train <- data_trainval[ train_index,]
 data_val <- data_trainval[ -train_index,]
 
-
-
 # Adjust data to glment package format
 data_model_matrix_train <- model.matrix(delay_140_y ~ ., data_train)
 data_model_matrix_val <- model.matrix(delay_140_y ~ ., data_val)
@@ -156,8 +151,7 @@ hyper_grid <- expand.grid(
   acc_cv = NA #for cross validation
 )
 
-########### stepwise and var importance
-# NOTE!!! Stepwise() and varImp() can be used only with LM or GLM type object
+###################### stepwise and var importance #############################
 #set the formula
 formula_mod = formula(delay_140_y ~ .) 
 
@@ -174,11 +168,7 @@ imp <- data.frame(overall = imp$Overall,
 imp[order(imp$overall,decreasing = T),]
 
 
-########### CUTOFF ################
-# Maximise sensitivity - chceme snizit False Negative -> lidi co se opozdi o 
-# 140 dni nejsou schopni splacet
-
-########### HOLDOUT ################
+################################## HOLDOUT #####################################
 #get estimate of the validation error for each couple on the grid
 for(i in 1:nrow(hyper_grid)){
   # Fit elastic net regression
@@ -228,40 +218,7 @@ cutoff_roc = pROC::roc(response = data_val$delay_140_y, predictor=preds)
 temp_cut <- coords(cutoff_roc, "best")
 optimal_cutoff <- temp_cut[1,1]
 
-
-# SMAZAT NEBO NECHAT
-# 
-# #fitting 
-# fit_elnet_reg_hoe <- glmnet(
-#   x = data_model_matrix_trainval,
-#   y = data_trainval$delay_140_y,
-#   alpha = hyper_grid[opt_row_ho,"alpha"],
-#   lambda = hyper_grid[opt_row_ho,"lambda"],
-#   standardize = TRUE,
-#   intercept = TRUE,
-#   family = "binomial",
-#   trace = TRUE)
-# 
-# 
-# #calcualte predictions
-# preds_prob = predict(
-#   object = fit_elnet_reg_hoe,
-#   newx =  data_model_matrix_test,
-#   type = "response")
-# #set cut off to 50%
-# preds1 <- ifelse(preds_prob[,1]>optimal_cutoff, "1", "0")
-# #calculate accuracy
-# Metrics::accuracy(data_test$delay_140_y, preds1)
-# 
-# # ROC curve, AUC
-# conf.mat = confusionMatrix(table(preds1, data_test$delay_140_y), positive = "1")
-# logist_sensitivity = conf.mat$byClass["Sensitivity"]
-# logist_specifity = conf.mat$byClass["Specificity"]
-# s.logist.roc = roc(response = data_test$delay_140_y, predictor=preds_prob, plot = TRUE, print.auc = TRUE)
-# abline(v = logist_specifity, h = logist_sensitivity, col = 'red', lty = "dotted")
-# 
-
-########### CROSS VALIDATION ################
+############################## CROSS VALIDATION ################################
 #only provides validation for different lambdas and alpha fixed
 
 #using alpha opimized in ho
@@ -303,8 +260,3 @@ plot(AUC::sensitivity(preds_prob2, data_test$delay_140_y))
 plot(AUC::specificity(preds_prob2, data_test$delay_140_y), add = T)
 plot(AUC::specificity(preds_prob2, data_test$delay_140_y))
 plot(AUC::sensitivity(preds_prob2, data_test$delay_140_y))
-
-
-#varImp
-
-vip(fit_elnet_cvp, bar = FALSE, horizontal = FALSE, size = 1)
