@@ -76,56 +76,6 @@ data_collection <- data_collection %>%
 # Remove feature "payed_ammount" which was replaced by feature "paid_amount"
 data_collection <- subset(data_collection, select = -payed_ammount)
 
-# Clearing N/A values ----------------------------------------------------------
-
-# delete NA's in columns payment_order and payment_date
-data_collection <- data_collection %>% drop_na(payment_order, payment_date)
-
-# grouping by contract_id, payment_order and due_date and adding values of first row
-data_group <- data_collection %>%
-  select(contract_id, payment_order, due_date, living_area, different_contact_area, kc_flag, cf_val) %>%
-  group_by(contract_id, payment_order, due_date) %>%
-  filter(row_number() == 1)
-
-# grouping by contract_id, payment_order and due_date and adding values to column "payment_date"
-# to be the value of last row in the group.
-# This ensures, that the group will have payment date set to the date that happened last
-data_group2 <- data_collection %>%
-  select(contract_id, payment_order, due_date, payment_date, paid_amount) %>%
-  group_by(contract_id, payment_order, due_date) %>%
-  summarize(payment_date = last(payment_date), paid_amount = sum(paid_amount))
-  
-# grouping via same conditions as in first grouping but adding remaining columns
-data_group3 <- data_collection %>%
-  select(
-    contract_id, payment_order, due_date, product_type, contract_status, business_discount, gender,
-    marital_status, number_of_children, number_other_product, clients_phone, client_mobile, client_email, total_earnings,
-    birth_year, birth_month, kzmz_flag, due_amount
-  ) %>%
-  group_by(contract_id, payment_order, due_date) %>%
-  filter(row_number() == 1)
-
-# joining first two data_groups
-data_total <- left_join(data_group, data_group2)
-
-# joining remaining
-data_total <- left_join(data_total, data_group3)
-
-# controlling that there is no N/A's in dataset
-apply(data_total, 2, function(x) any(is.na(x)))
-
-# graphically show how many N/A's we have in our new Dataset
-# vis_miss(data_total, warn_large_data=FALSE)
-
-# dropping N/A's in remaining three columns, because it was less then 0.1% of dataset
-data_final <- data_total %>% drop_na(living_area, different_contact_area, cf_val)
-
-# test that data_final doesn't contain any N/A's
-apply(data_final, 2, function(x) any(is.na(x)))
-
-# copying to the previous data_collection
-data_collection <- data_final
-
 # Create a feature for delay in days
 data_collection$delay <- difftime(data_collection$payment_date,
   data_collection$due_date, tz,
@@ -140,11 +90,11 @@ detailed_statistics <- skim(data_collection)
 
 # Analyze correlations between variables #######################################
 # Compute a matrix of correlation p-values and plot the correlation matrix
-p.mat <- data_collection[, -c(3, 8)] %>%
+p.mat <- data_collection[, -c(1,2,5:8,17,20)] %>%
   select_if(is.numeric) %>%
   cor_pmat()
 
-correlogram <- data_collection[, -c(3, 8)] %>%
+correlogram <- data_collection[, -c(1,2,5:8,17,20)] %>%
   drop_na() %>%
   select_if(is.numeric) %>%
   cor() %>%
@@ -159,7 +109,7 @@ correlogram <- data_collection[, -c(3, 8)] %>%
 
 # Compute correlation matrix between all possible pairs of variables and select
 #   only rows containing moderate or strong values of correlation coefficient
-data_collection[, -c(3, 8)] %>%
+data_collection[, -c(1,2,5:8,17,20)] %>%
   select_if(is.numeric) %>%
   cor() %>%
   round(., 2) %>%
@@ -1110,8 +1060,7 @@ data_collection %>%
 
 # Verify data quality ==========================================================
 
-# Are there missing values in the data? If so, how are they represented, where
-# do they occur, and how common are they?
+# Identify missing values in the data
 
 variables_miss <- miss_var_summary(data_collection)
 print(variables_miss)
@@ -1124,19 +1073,12 @@ gg_miss_var(data_collection)
 data_collection %>%
   gg_miss_var(facet = total_earnings)
 
-# what with NAs in payment order
-# to do payment order id!!
-
 sum(is.na(data_collection$different_contact_area) == T &
   is.na(data_collection$cf_val) == T &
   is.na(data_collection$living_area) == T &
   is.na(data_collection$kc_flag) == T)
 
 sum(is.na(data_collection$kc_flag) == T)
-
-# Zaver: ze ctyr promennych s nejvice NA zaznamy je vetsina NA pozorovani
-# na stejnych radcich, to muze indikovat "missing not at random".
-
 
 # Check for plausibility of values
 for (i in c(1:ncol)) {
@@ -1149,6 +1091,117 @@ for (i in c(1:ncol)) {
 
 # Data preparation -------------------------------------------------------------
 # Clean the data - estimation of missing data
+# Removing missing values
+data_collection <- read.csv(path_to_data)
+
+# Data understanding -----------------------------------------------------------
+# Data description =============================================================
+# Data volume (number of rows and columns)
+nrow <- nrow(data_collection)
+ncol <- ncol(data_collection)
+
+# Convert columns to the correct data type
+data_collection <- data_collection %>%
+  mutate(due_date = as.Date(due_date, format = "%Y-%m-%d"))
+data_collection <- data_collection %>%
+  mutate(payment_date = as.Date(payment_date, format = "%Y-%m-%d"))
+data_collection <- data_collection %>%
+  mutate(product_type = as.factor(product_type))
+data_collection <- data_collection %>%
+  mutate(contract_status = as.factor(contract_status))
+data_collection <- data_collection %>%
+  mutate(business_discount = as.factor(business_discount))
+data_collection <- data_collection %>%
+  mutate(gender = as.factor(gender))
+data_collection <- data_collection %>%
+  mutate(marital_status = as.factor(marital_status))
+data_collection <- data_collection %>%
+  mutate(clients_phone = as.factor(clients_phone))
+data_collection <- data_collection %>%
+  mutate(client_mobile = as.factor(client_mobile))
+data_collection <- data_collection %>%
+  mutate(client_email = as.factor(client_email))
+data_collection <- data_collection %>%
+  mutate(total_earnings = factor(total_earnings, labels = c(
+    "level1", "level2", "level3", "level4",
+    "level5", "level6", "level7", "level8",
+    "level9", "level10", "not_declared"
+  )))
+data_collection <- data_collection %>%
+  mutate(living_area = as.factor(living_area))
+data_collection <- data_collection %>%
+  mutate(different_contact_area = as.factor(different_contact_area))
+data_collection <- data_collection %>%
+  mutate(kc_flag = as.factor(kc_flag))
+data_collection <- data_collection %>%
+  mutate(cf_val = as.numeric(cf_val))
+data_collection <- data_collection %>%
+  mutate(kzmz_flag = as.factor(kzmz_flag))
+data_collection <- data_collection %>%
+  mutate(due_amount = as.numeric(due_amount))
+data_collection <- data_collection %>%
+  mutate(paid_amount = as.numeric(payed_ammount))
+
+# Remove feature "payed_ammount" which was replaced by feature "paid_amount"
+data_collection <- subset(data_collection, select = -payed_ammount)
+
+# Clearing N/A values ----------------------------------------------------------
+
+# Delete NAs in columns payment_order and payment_date
+data_collection <- data_collection %>% drop_na(payment_order, payment_date)
+
+# Group by contract_id, payment_order and due_date and add values of the first row
+data_group <- data_collection %>%
+  select(contract_id, payment_order, due_date, living_area, different_contact_area, kc_flag, cf_val) %>%
+  group_by(contract_id, payment_order, due_date) %>%
+  filter(row_number() == 1)
+
+# Group by contract_id, payment_order and due_date and add values to "payment_date"
+# to be the value of last row in the group.
+# This ensures, that the group will have payment date set to the date that happened last
+data_group2 <- data_collection %>%
+  select(contract_id, payment_order, due_date, payment_date, paid_amount) %>%
+  group_by(contract_id, payment_order, due_date) %>%
+  summarize(payment_date = last(payment_date), paid_amount = sum(paid_amount))
+
+# Group via the same conditions as in the first grouping but add remaining columns
+data_group3 <- data_collection %>%
+  select(
+    contract_id, payment_order, due_date, product_type, contract_status, business_discount, gender,
+    marital_status, number_of_children, number_other_product, clients_phone, client_mobile, client_email, total_earnings,
+    birth_year, birth_month, kzmz_flag, due_amount
+  ) %>%
+  group_by(contract_id, payment_order, due_date) %>%
+  filter(row_number() == 1)
+
+# Join first two data_groups
+data_total <- left_join(data_group, data_group2)
+
+# Join remaining
+data_total <- left_join(data_total, data_group3)
+
+# Check that there are no N/As in the dataset
+apply(data_total, 2, function(x) any(is.na(x)))
+
+# Visualize the number of N/As we have in our new dataset
+# vis_miss(data_total, warn_large_data=FALSE)
+
+# Drop N/As in the remaining three columns, because it was less than 0.1% of the dataset
+data_final <- data_total %>% drop_na(living_area, different_contact_area, cf_val)
+
+# test that data_final doesn't contain any N/A
+apply(data_final, 2, function(x) any(is.na(x)))
+
+# Copy to the previous data_collection
+data_collection <- data_final
+
+# Create a feature for delay in days
+data_collection$delay <- difftime(data_collection$payment_date,
+                                  data_collection$due_date, tz,
+                                  units = "days"
+)
+data_collection <- data_collection %>%
+  mutate(delay = as.numeric(delay))
 
 # Feature engineering ==========================================================
 # This function takes a vector and shifts its values by 1. This means that
@@ -1175,7 +1228,7 @@ data_collection <- data_collection %>%
   select(-delay_indiv_help) %>%
   unnest(c(data, delay_indiv))
 
-# Creating new features: number of delays larger than 21(140) days
+# Creating new features: number of delays larger than 21 (140) days
 # for the whole client's history.
 data_collection <- data_collection %>%
   nest(-contract_id) %>%
@@ -1208,7 +1261,7 @@ data_collection <- data_collection %>%
   filter(is.na(payment_order) == F) %>% # POZOR, OVERIT!!!!!!!!
   filter(is.na(delay) == F) # POZOR, OVERIT!!!!!!!!
 
-# Second we nest data again
+# Second we nest the data again
 data_collection <- data_collection %>%
   nest(-contract_id)
 
@@ -1297,5 +1350,132 @@ data_collection <- data_collection %>%
   select(-mean_delay_12m_help, -mean_delay_6m_help, -mean_delay_3m_help, -mean_delay_1m_help)
 
 
-# Write data to .txt for the model creation
+# Write data to .txt for model creation
 write.table(data_collection, file = "data_collection_prepared.txt", sep = ";")
+
+###
+# Summary statistics of the data
+summary <- summary(data_collection)
+detailed_statistics <- skim(data_collection)
+
+# Analyze correlations between variables #######################################
+# Compute a matrix of correlation p-values and plot the correlation matrix
+p.mat <- data_collection[, -c(1,2,5:8,17,20)] %>%
+  select_if(is.numeric) %>%
+  cor_pmat()
+
+correlogram <- data_collection[, -c(1,2,5:8,17,20)] %>%
+  drop_na() %>%
+  select_if(is.numeric) %>%
+  cor() %>%
+  ggcorrplot(
+    p.mat = p.mat,
+    type = "lower", hc.order = T, ggtheme = theme_minimal,
+    colors = c("#6D9EC1", "white", "#E46726"),
+    show.diag = T, lab_size = 5, title = "Correlation Matrix",
+    legend.title = "Correlation Value",
+    outline.color = "white"
+  )
+
+# Compute correlation matrix between all possible pairs of variables and select
+#   only rows containing moderate or strong values of correlation coefficient
+data_collection[, -c(1,2,5:8,17,20)] %>%
+  select_if(is.numeric) %>%
+  cor() %>%
+  round(., 2) %>%
+  data.frame() %>%
+  rownames_to_column("rows") %>%
+  mutate(across(), replace(., . == 1, 0)) %>%
+  column_to_rownames("rows") %>%
+  filter_all(any_vars(abs(.) >= 0.3))
+
+# Test the significance of found correlation
+correlation <- cor.test(data_collection$due_amount, data_collection$paid_amount,
+                        method = "pearson"
+)
+
+# Examine relationship between categorical features using chi-squared test with
+#   the significance level of 0.05
+# Overestimating the matrix size saves time compared to building the matrix one
+#  row at a time:
+categorical_rel <- matrix(nrow = choose(ncol(data_collection), 2), ncol = 2)
+cont_vector <- vector("integer")
+iteration <- 0
+for (i in c(1:(ncol(data_collection) - 1))) {
+  if (is.factor(data_collection[, i])) {
+    for (j in c((i + 1):ncol(data_collection))) {
+      iteration <- iteration + 1
+      if (is.factor(data_collection[, j])) {
+        contingency_table <- table(data_collection[, i], data_collection[, j])
+        chisq <- (chisq.test(contingency_table, correct = FALSE))
+        if (chisq$p.value <= 0.05) {
+          categorical_rel[iteration, ] <- c(i, j)
+          cont_vector <- c(cont_vector, i, j)
+        }
+      }
+    }
+  }
+}
+
+# Save the pairs of categorical features that are correlated into a data frame
+categorical_rel <- as.data.frame(categorical_rel)
+categorical_rel <- categorical_rel %>%
+  filter_all(any_vars(!is.na(.)))
+
+# Univariate analysis of numeric variables #####################################
+# Summary for each attribute
+headofTable <- c(
+  "Num. of Children", "Num. Other Product", "Year of Birth",
+  "Due amount", "Paid amount", "Delay"
+)
+EX <- c(
+  mean(data_collection$number_of_children),
+  mean(data_collection$number_other_product), mean(data_collection$birth_year),
+  mean(data_collection$due_amount), mean(data_collection$paid_amount),
+  mean(data_collection$delay)
+)
+VarX <- c(
+  var(data_collection$number_of_children),
+  var(data_collection$number_other_product), var(data_collection$birth_year),
+  var(data_collection$due_amount), var(data_collection$paid_amount),
+  var(data_collection$delay)
+)
+Median <- c(
+  median(data_collection$number_of_children),
+  median(data_collection$number_other_product),
+  median(data_collection$birth_year), median(data_collection$due_amount),
+  median(data_collection$paid_amount), median(data_collection$delay)
+)
+Q1 <- c(
+  quantile(data_collection$number_of_children, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$number_other_product, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$birth_year, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$due_amount, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$paid_amount, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$delay, probs = 1 / 4, na.rm = TRUE)
+)
+Q3 <- c(
+  quantile(data_collection$number_of_children, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$number_other_product, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$birth_year, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$due_amount, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$paid_amount, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$delay, probs = 3 / 4, na.rm = TRUE)
+)
+Min <- c(
+  min(data_collection$number_of_children),
+  min(data_collection$number_other_product),
+  min(data_collection$birth_year), min(data_collection$due_amount),
+  min(data_collection$paid_amount), min(data_collection$delay)
+)
+Max <- c(
+  max(data_collection$number_of_children),
+  max(data_collection$number_other_product), max(data_collection$birth_year),
+  max(data_collection$due_amount), max(data_collection$paid_amount),
+  max(data_collection$delay)
+)
+
+summaryData <- distinct(data.frame(headofTable, EX, VarX, Median, Q1, Q3, Min,
+                                   Max,
+                                   check.rows = FALSE, check.names = FALSE
+))
