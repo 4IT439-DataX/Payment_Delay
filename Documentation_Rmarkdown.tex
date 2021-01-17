@@ -351,6 +351,8 @@ We computed correlation coefficients between all possible pairs of numeric varia
 Then, the significance of correlation between due amount and paid amount was tested using Pearson's product moment correlation coefficient. The pair of attributes was found to be significantly correlated with a correlation coefficient of 0.76 and p-value less than 2.2e-16.\\
 Relationship between categorical variables was tested using chi-squared test with the significance level of 0.05. All significantly correlated pairs of variables can be accessed in ``categorical\_rel'' dataframe.
 
+On \ref{fig:correlogramPairs} we can see the top 15 most correlated pairs of attributes in the data. The highest correlation have \emph{paid\_amount} and \emph{due\_amount} as was already mentioned. Second highest correlation has \emph{business\_discount\_1} and \emph{product\_type\_1}. The highest negative correlation is between variables \emph{product\_type\_1} and \emph{total\_earnings\_not\_declared}.
+
 \hypertarget{basic-statistics}{%
 \subsubsection{Basic statistics}\label{basic-statistics}}
 
@@ -385,10 +387,9 @@ Secondly, we dealt with the NA values in payment\_order and payment\_date. Since
 \hypertarget{feature-engineering}{%
 \subsection{Feature engineering}\label{feature-engineering}}
 
-We decided to add new features to create higher-accuracy models. As already have been mentioned, we firstly computed a numeric feature \emph{delay} counting the difference of days between \emph{payment\_date} and \emph{due\_date}. We selected this variable as our target variable.
+We decided to add new features to create higher-accuracy models. As has already been mentioned, we firstly computed a numeric feature \emph{delay} counting the difference in days between \emph{payment\_date} and \emph{due\_date}. We selected this variable as our target variable.
 
-Since we are creating two classification models deciding whether a new payment will be delayed
-for more than 21 days or more than 140 days, we created 2 new factor features \emph{delay\_21\_y} and \emph{delay\_140\_y}. Value is set to 1 if the payment delay is greater than 21 or greater than 140 days.
+Since we are creating two classification models, deciding whether a new payment will be delayed for more than 21 days or more than 140 days, we created 2 new factor features \emph{delay\_21\_y} and \emph{delay\_140\_y}. Value is set to 1 if the payment delay is greater than 21 or greater than 140 days.
 
 We also created a new numerical feature \emph{delay\_indiv} counting the mean delay for the whole client´s history. We also computed 2 new numerical features, \emph{delay\_indiv\_21} and \emph{delay\_indiv\_140} counting number of delayed payments (21, 140 days) for the whole client's history.
 
@@ -534,7 +535,7 @@ We calculated information value for the independent variables, with dependent va
 
 The dataset was then split into training (60\%), validation (20\%) and test (20\%) datasets. We used stratified sampling to avoid missing classes in training data.
 Hypergrid was defined to tune the parameters. After fitting the model, variable importance was calculated and we discovered that \emph{mean\_delay\_1m}, \emph{delay\_indiv\_21}, \emph{contract\_status5}, \emph{delay\_indiv\_140} and \emph{delay\_indiv} provided the best results.
-Afterwards, we used hold-out to determine cutoff and to find the best values for alpha and lambda using training data. The optimal cutoff value which maximized both specificity and sensitivity was found to be 43.7\%. Using alpha found in the previous step, we used 5-fold cross-validation to find optimal value for lambda (using validation data).\\
+Afterwards, we used holdout to determine cutoff and to find the best values for alpha and lambda using training data. The optimal cutoff value which maximized both specificity and sensitivity was found to be 43.7\%. Using alpha found in the previous step, we used 5-fold cross-validation to find optimal value for lambda (using validation data).\\
 The accuracy of created model is 88.66\% and the AUC is 0.946, see Figure \ref{fig:auc21}. For confusion matrix, sensitivity and specificity, please refer to the table below.
 
 \begin{verbatim}
@@ -547,9 +548,11 @@ The accuracy of created model is 88.66\% and the AUC is 0.946, see Figure \ref{f
         Specificity : 0.9028 
 \end{verbatim}
 
-Maximum accuracy for both cross-validation and hold-out method was achieved with hyper parameters \emph{alpha = 0} and \emph{lambda = 0}. Analyzing the hypergrid, we discovered that maximum accuracy was connected to lambda always being 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization.
+Maximum accuracy for both cross-validation and holdout method was achieved with hyper parameters \emph{alpha = 0} and \emph{lambda = 0}. Analyzing the hypergrid, we discovered that maximum accuracy was connected to lambda always being 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization.
 
 We calculated the top decile lift to be 2.064 by ordering the data by the predictors and computing the proportion of positives in the top 10\%. For lift curve please refer to \ref{fig:lift21}.
+
+We were asked by our sponsor to additionally test out if the model could recognize clients that have yet to delay their payments. This was achieved by filtering out the payments that have been delayed and leaving only non-delayed payments. For results, please refer to Figure \ref{fig:filteredAUC21}
 
 \hypertarget{prediction-model-140-days}{%
 \subsection{Prediction model (140+ days)}\label{prediction-model-140-days}}
@@ -563,7 +566,7 @@ We calculated information value for the independent variables, with dependent va
 
 The dataset was then split into training (60\%), validation (20\%) and test (20\%) datasets. We used stratified sampling to avoid missing classes in training data.
 Hypergrid was defined to tune the parameters. After fitting the model, variable importance was calculated and we discovered that \emph{mean\_delay\_1m}, \emph{contract\_status6}, \emph{contract\_status8}, \emph{delay\_indiv\_140} and \emph{delay\_indiv} provided the best results.\\
-Afterwards, we used hold-out to determine cutoff and to find the best values for alpha and lambda using training data. The optimal cutoff value which maximized both specificity and sensitivity was found to be 15.1\%. Using alpha found in the previous step, we used 5-fold cross-validation to find optimal value for lambda (using validation data).\\
+Afterwards, we used holdout to determine cutoff and to find the best values for alpha and lambda using training data. The optimal cutoff value which maximized both specificity and sensitivity was found to be 15.1\%. Using alpha found in the previous step, we used 5-fold cross-validation to find optimal value for lambda (using validation data).\\
 The accuracy of created model is 96.65\%, and the AUC is 0.974 see Figure \ref{fig:auc140}. For confusion matrix, sensitivity and specificity, please refer to the table below.
 
 \begin{verbatim}
@@ -576,7 +579,7 @@ The accuracy of created model is 96.65\%, and the AUC is 0.974 see Figure \ref{f
         Specificity : 0.97645 
 \end{verbatim}
 
-Maximum accuracy for both cross-validation and hold-out method was achieved with hyper parameters \emph{alpha = 0} and \emph{lambda = 0}. Analyzing the hypergrid, we discovered that maximum accuracy was connected to lambda always being 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization. The top decile lift is 8.667, for lift curve please refer to \ref{fig:lift140}.
+Maximum accuracy for both cross-validation and holdout method was achieved with hyper parameters \emph{alpha = 0} and \emph{lambda = 0}. Analyzing the hypergrid, we discovered that maximum accuracy was connected to lambda always being 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization. The top decile lift is 8.667, for lift curve please refer to \ref{fig:lift140}.
 
 \hypertarget{estimation-of-the-expected-number-of-days-of-delay-when-the-client-triggers-first-action}{%
 \subsection{Estimation of the expected number of days of delay when the client triggers first action}\label{estimation-of-the-expected-number-of-days-of-delay-when-the-client-triggers-first-action}}
@@ -584,21 +587,38 @@ Maximum accuracy for both cross-validation and hold-out method was achieved with
 The goal of the last model is to estimate the average number of days delayed if the client exceeds the first action.
 The expectation of our sponsor was to create a model better than the Simple average model by at least 30\%. We decided to use Elastic net regression for the predictions. Simpler model was
 selected because of little prior experience with data science among team members.\\
-First step was to check the correlations of the attributes. As can be seen on Figure \ref{fig:correlogram}, higher positive correlation was discovered between \emph{due\_amount} and \emph{paid\_amount}, therefore we decided to exclude \emph{due\_amount}. We also excluded attribute \emph{due\_date}, because delay was calculated as the difference between \emph{due\_date} and \emph{payment\_date}.\\
+First step was to check the correlations of the attributes. As can be seen on Figure \ref{fig:correlogram}, higher positive correlation was discovered between \emph{due\_amount} and \emph{paid\_amount}, therefore we decided to exclude \emph{due\_amount}. We also excluded attribute \emph{due\_date}, because delay was calculated as the difference between \emph{due\_date} and \emph{payment\_date}. Lastly, we excluded \emph{contract\_id}
 In the next step, the dataset was filtered by the rows, where \emph{delay\_21\_y} is equal to 1, therefore we selected only payments with delay greater than 21 days. Variable \emph{delay\_21\_y} was then excluded. The data was shuffled and split into training (60\%), validation (20\%) and test (20\%) datasets. We used stratified sampling to avoid missing classes in training data.\\
 For the Simple average model, we computed the average of trainval data and used it as a prediction on test set. The average delay of payments that exceeded the first action was \textbf{128.2179} days. Simple average model provided root mean squared error (RMSE) \textbf{213.3069}.\\
-For the Elastic net regression, hypergrid was defined to tune the parameters. We decided to use hold-out method as well as 10-fold cross-validation to find the optimal values of hyper parameters. Results can be found in the table below.
+For the Elastic net regression, hypergrid was defined to tune the parameters. We decided to use holdout method as well as 10-fold cross-validation to find the optimal values of hyper parameters. Results can be found in the table below.
 
 \begin{longtable}[]{@{}llll@{}}
 \toprule
 alpha & lambda & rmse\_ho & rmse\_cv\tabularnewline
 \midrule
 \endhead
-0 & 0 & 53.51514 & 53.16496\tabularnewline
+0 & 0 & 74.78015 & 73.95688\tabularnewline
 \bottomrule
 \end{longtable}
 
-As can be seen, minimum RMSE of both cross-validation and hold-out was selected with hyper parameters \emph{alpha = 0} and \emph{lambda = 0}. Analyzing hypergrid, we discovered that minimum RMSE was connected to lambda being always 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization. Our model exceeded the Simple average benchmark by 74\%. Variable importance of the CV regression model can be seen on Figure \ref{fig:varIm}.
+As can be seen, minimum RMSE of both cross-validation and holdout was selected with hyper parameters \emph{alpha = 0} and \emph{lambda = 0}. Analyzing hypergrid, we discovered that minimum RMSE was connected to lambda being always 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization.
+Having optimal parameters, we tested the model on testing data providing RMSE \textbf{74.51247 }. Our model exceeded the Simple average benchmark by 65 \%. Variable importance of the CV regression model can be seen on Figure \ref{fig:varIm}.
+
+Based on the request from our sponsor, we analyzed performance of the created model on data, that does keep a smaller history of delayed payments. Sponsor wanted us to find out, whether the model performs good when clients do not have a larger history of payment delays. We created a filter using delay\_indiv\_21, which counts payments delayed for more then 21 days and we decided to leave the maximum of two such payments for each contract.
+
+As for the Simple average model, the average delay of payments that exceeded the first action was \textbf{94.07225}. Simple average model provided root mean squared error (RMSE) \textbf{171.6532}.\\
+For the Elastic net regression, hypergrid was again defined to tune the parameters. We decided to use holdout method as well as 10-fold cross-validation to find the optimal values of hyper parameters as in the first model. Results can be found in the table below.
+
+\begin{longtable}[]{@{}llll@{}}
+\toprule
+alpha & lambda & rmse\_ho & rmse\_cv\tabularnewline
+\midrule
+\endhead
+0 & 0 & 88.80294 & 88.04558\tabularnewline
+\bottomrule
+\end{longtable}
+
+As can be seen, minimum RMSE of both cross-validation and holdout was selected with hyper parameters \emph{alpha = 0} and \emph{lambda = 0}. Analyzing hypergrid, we discovered that minimum RMSE was connected to lambda being always 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization.Having optimal parameters, we tested the model on testing data providing RMSE \textbf{89.4216 }. Using cross-validation, our model exceeded the Simple average benchmark by 47,9 \%. Variable importance of the CV regression model can be seen on Figure \ref{fig:varImFilter}.
 
 \hypertarget{discussion}{%
 \section{Discussion}\label{discussion}}
@@ -607,7 +627,7 @@ All three models passed the criteria desired by our sponsor. The AUC for model p
 
 The specificity of both the first and the second model exceeded the sensitivity, meaning that the proportion of payments correctly identified as not being delayed past 21 (140) days was higher compared to the proportion of payments correctly predicted as delayed past 21 (140) days. However, it is not known whether the actual cost reduction due to correctly identifying payments which will not be delayed is higher compared to the cost reduction due to correctly identifying payments which will be delayed past a specific threshold.
 
-The third model predicted that the average delay for payments, which were delayed by more than 21 days, was 128.2179 days. The generated model was 74\% better than simple average model. We suspect this could be due to the use of \emph{mean\_delay\_1/3/6/12m}, as these features include simple arithmetic mean calculated before splitting the data into training, validation and test datasets. On the other hand, these varibles do not seem to carry high value for prediction, as evidenced in \ref{fig:varIm} and after excluding them the RMSE increased by approximately 10.
+The third model predicted that the average delay for payments, which were delayed by more than 21 days, was 128.2179 days. The generated model was 65,3 \% better than simple average model.
 
 \hypertarget{conclusion}{%
 \section{Conclusion}\label{conclusion}}
@@ -619,13 +639,27 @@ We generated two classification models and one prediction model using existing c
 As the collection process in case of client's delay originally consisted of three thresholds (21 days, 70 days, 140 days), we suggest creating a new model predicting if the client delays payment past 70 days. Additionally, conditional probabilities between the delays at each threshold should be explored, as each significant delay implies increased costs. As for the prediction model, we recommend deriving \emph{mean\_delay\_1/3/6/12m} features after splitting the data into training, validation and test datasets. We further recommend exploring mean delay in days for delays past the second and the third threshold.
 In addition, we recommend to explore more sophisticated methods, such as neural nets for classification and regression trees or neural nets for prediction. From business perspective, it might prove useful to perform cost-benefit analysis based on confusion matrices from the classification tasks (identifying costs associated with true positives, true negatives, false positives and false negatives).
 
-\hypertarget{figures}{%
-\section{Figures}\label{figures}}
+\hypertarget{contact-information}{%
+\section{Contact information}\label{contact-information}}
+
+For future inquiries, please contact us at:
+Matouš Eibich, \href{mailto:eibm00@vse.cz}{\nolinkurl{eibm00@vse.cz}}
+Lenka Šťastná, \href{mailto:stal04@vse.cz}{\nolinkurl{stal04@vse.cz}}
+Thanh Tung Tran, \href{mailto:trat04@vse.cz}{\nolinkurl{trat04@vse.cz}}
+Ivana Stanová, \href{mailto:stai02@vse.cz}{\nolinkurl{stai02@vse.cz}}
+Daria Ponomarenko, \href{mailto:pond00@vse.cz}{\nolinkurl{pond00@vse.cz}}
+
+\hypertarget{attachments}{%
+\section{Attachments}\label{attachments}}
 
 \begin{figure}
 \centering
 \includegraphics{Documentation_Rmarkdown_files/figure-latex/correlogram-1.pdf}
 \caption{\label{fig:correlogram}\label{fig:correlogram}Correlation plot.}
+\end{figure}
+
+\begin{figure}
+\includegraphics[width=0.9\linewidth]{top15_correlation} \caption{\label{fig:correlogramPairs} Top 15 most correlated variables. }\label{fig:correlogramPairs}
 \end{figure}
 
 \begin{figure}
@@ -717,7 +751,17 @@ In addition, we recommend to explore more sophisticated methods, such as neural 
 \end{figure}
 
 \begin{figure}
+\centering
+\includegraphics{.//filtered_21_AUC_roc.png}
+\caption{\label{fig:filteredAUC21} ROC curve and AUC (21+ delay), prediction on non-delayed data}
+\end{figure}
+
+\begin{figure}
 \includegraphics[width=0.9\linewidth]{delay_varImp} \caption{\label{fig:varIm}Variable importance for glmnet cv}\label{fig:varIm}
+\end{figure}
+
+\begin{figure}
+\includegraphics[width=0.9\linewidth]{delay_varImp_filter21} \caption{\label{fig:varIm}Variable importance for glmnet cv (model with filtered delays)}\label{fig:varImFilter}
 \end{figure}
 
 \begin{figure}
@@ -727,9 +771,6 @@ In addition, we recommend to explore more sophisticated methods, such as neural 
 \begin{figure}
 \includegraphics[width=0.9\linewidth]{varimp140} \caption{\label{fig:varIm21}Variable importance (delay 140+)}\label{fig:varIm140}
 \end{figure}
-
-\hypertarget{tables}{%
-\section{Tables}\label{tables}}
 
 \begin{table}
 

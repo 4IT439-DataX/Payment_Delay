@@ -3,14 +3,14 @@ title: "Documentation of the Payment Delays Project"
 author: "Ivana Stanova, Lenka Stastna"
 date: "10 1 2021"
 output:
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: true
   bookdown::html_document2:
     fig_caption: yes
     toc: true
     toc_depth: 2
     number_sections: true
-  bookdown::pdf_document2:
-    fig_caption: yes
-    keep_tex: true
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, fig.width = 12, fig.height = 8)
@@ -32,7 +32,7 @@ As one of the deliverables, project documentation describes project flow. Projec
 We chose to use R studio to prepare the data, create models and evaluate, RMarkdown was used to create documentation of the project.
 
 ```{r load, eval=TRUE, include=FALSE, cache=TRUE}
-path_to_data <- "..\\payment_dates_final.csv"
+path_to_data <- "D:/Dokumenty/ŠKOLA/4IT439 Data-X – aplikované analytické datové modely v reálných úlohách/Semestrálka/payment_dates_final.csv"
 data_collection <- read.csv(path_to_data)
 data_collection <- data_collection %>%
   mutate(due_date = as.Date(due_date, format = "%Y-%m-%d"))
@@ -148,17 +148,16 @@ Secondly, we dealt with the NA values in payment_order and payment_date. Since i
 ## Feature engineering
 
 ```{r load_new_data, eval=TRUE, include=FALSE, cache=TRUE}
-data_prepared <- read.delim("..\\data_collection_prepared_new.txt", header = TRUE, sep = ";", dec = ".")
+data_prepared <- read.delim("D:/Dokumenty/ŠKOLA/4IT439 Data-X – aplikované analytické datové modely v reálných úlohách/Semestrálka/Phase I/data_collection_prepared.txt", header = TRUE, sep = ";", dec = ".")
 data_prepared <- data_prepared %>%
   mutate(delay_140_y = as.factor(delay_140_y))
 data_prepared <- data_prepared %>%
   mutate(delay_21_y = as.factor(delay_21_y))
 ```
 
-We decided to add new features to create higher-accuracy models. As already have been mentioned, we firstly computed a numeric feature *delay* counting the difference of days between *payment_date* and *due_date*. We selected this variable as our target variable.  
+We decided to add new features to create higher-accuracy models. As has already been mentioned, we firstly computed a numeric feature *delay* counting the difference in days between *payment_date* and *due_date*. We selected this variable as our target variable.  
 
-Since we are creating two classification models deciding whether a new payment will be delayed
-for more than 21 days or more than 140 days, we created 2 new factor features *delay_21_y* and *delay_140_y*. Value is set to 1 if the payment delay is greater than 21 or greater than 140 days.
+Since we are creating two classification models, deciding whether a new payment will be delayed for more than 21 days or more than 140 days, we created 2 new factor features *delay_21_y* and *delay_140_y*. Value is set to 1 if the payment delay is greater than 21 or greater than 140 days.
 
 We also created a new numerical feature *delay_indiv* counting the mean delay for the whole client´s history. We also computed 2 new numerical features, *delay_indiv_21* and *delay_indiv_140* counting number of delayed payments (21, 140 days) for the whole client's history.
 
@@ -211,7 +210,7 @@ We calculated information value for the independent variables, with dependent va
 
 The dataset was then split into training (60%), validation (20%) and test (20%) datasets. We used stratified sampling to avoid missing classes in training data.
 Hypergrid was defined to tune the parameters. After fitting the model, variable importance was calculated and we discovered that *mean_delay_1m*, *delay_indiv_21*, *contract_status5*, *delay_indiv_140* and *delay_indiv* provided the best results.
-Afterwards, we used hold-out to determine cutoff and to find the best values for alpha and lambda using training data. The optimal cutoff value which maximized both specificity and sensitivity was found to be 43.7%. Using alpha found in the previous step, we used 5-fold cross-validation to find optimal value for lambda (using validation data).  
+Afterwards, we used holdout to determine cutoff and to find the best values for alpha and lambda using training data. The optimal cutoff value which maximized both specificity and sensitivity was found to be 43.7%. Using alpha found in the previous step, we used 5-fold cross-validation to find optimal value for lambda (using validation data).  
 The accuracy of created model is 88.66% and the AUC is 0.946, see Figure \@ref(fig:auc21). For confusion matrix, sensitivity and specificity, please refer to the table below.
 
                 Confusion matrix
@@ -223,9 +222,11 @@ The accuracy of created model is 88.66% and the AUC is 0.946, see Figure \@ref(f
             Specificity : 0.9028 
 
 
-Maximum accuracy for both cross-validation and hold-out method was achieved with hyper parameters *alpha = 0* and *lambda = 0*. Analyzing the hypergrid, we discovered that maximum accuracy was connected to lambda always being 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization.
+Maximum accuracy for both cross-validation and holdout method was achieved with hyper parameters *alpha = 0* and *lambda = 0*. Analyzing the hypergrid, we discovered that maximum accuracy was connected to lambda always being 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization.
 
 We calculated the top decile lift to be 2.064 by ordering the data by the predictors and computing the proportion of positives in the top 10%. For lift curve please refer to \@ref(fig:lift21).
+
+We were asked by our sponsor to additionally test out if the model could recognize clients that have yet to delay their payments. This was achieved by filtering out the payments that have been delayed and leaving only non-delayed payments. For results, please refer to Figure \@ref(fig:filteredAUC21)
 
 ## Prediction model (140+ days) 
 The goal of this classification task was to predict if the customer will be delayed in payment for 140 and more days. The expectation was for AUC to exceed 0.7.
@@ -237,7 +238,7 @@ We calculated information value for the independent variables, with dependent va
 
 The dataset was then split into training (60%), validation (20%) and test (20%) datasets. We used stratified sampling to avoid missing classes in training data.
 Hypergrid was defined to tune the parameters. After fitting the model, variable importance was calculated and we discovered that *mean_delay_1m*, *contract_status6*, *contract_status8*, *delay_indiv_140* and *delay_indiv* provided the best results.  
-Afterwards, we used hold-out to determine cutoff and to find the best values for alpha and lambda using training data. The optimal cutoff value which maximized both specificity and sensitivity was found to be 15.1%. Using alpha found in the previous step, we used 5-fold cross-validation to find optimal value for lambda (using validation data).  
+Afterwards, we used holdout to determine cutoff and to find the best values for alpha and lambda using training data. The optimal cutoff value which maximized both specificity and sensitivity was found to be 15.1%. Using alpha found in the previous step, we used 5-fold cross-validation to find optimal value for lambda (using validation data).  
 The accuracy of created model is 96.65%, and the AUC is 0.974 see Figure \@ref(fig:auc140). For confusion matrix, sensitivity and specificity, please refer to the table below.
 
                 Confusion matrix
@@ -248,7 +249,7 @@ The accuracy of created model is 96.65%, and the AUC is 0.974 see Figure \@ref(f
             Sensitivity : 0.87007         
             Specificity : 0.97645 
 
-Maximum accuracy for both cross-validation and hold-out method was achieved with hyper parameters *alpha = 0* and *lambda = 0*. Analyzing the hypergrid, we discovered that maximum accuracy was connected to lambda always being 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization. The top decile lift is 8.667, for lift curve please refer to \@ref(fig:lift140).
+Maximum accuracy for both cross-validation and holdout method was achieved with hyper parameters *alpha = 0* and *lambda = 0*. Analyzing the hypergrid, we discovered that maximum accuracy was connected to lambda always being 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization. The top decile lift is 8.667, for lift curve please refer to \@ref(fig:lift140).
 
 ## Estimation of the expected number of days of delay when the client triggers first action
 The goal of the last model is to estimate the average number of days delayed if the client exceeds the first action. 
@@ -257,7 +258,7 @@ selected because of little prior experience with data science among team members
 First step was to check the correlations of the attributes. As can be seen on Figure \@ref(fig:correlogram), higher positive correlation was discovered between *due_amount* and *paid_amount*, therefore we decided to exclude *due_amount*. We also excluded attribute *due_date*, because delay was calculated as the difference between *due_date* and *payment_date*.  Lastly, we excluded *contract_id* 
 In the next step, the dataset was filtered by the rows, where *delay_21_y* is equal to 1, therefore we selected only payments with delay greater than 21 days. Variable *delay_21_y* was then excluded. The data was shuffled and split into training (60%), validation (20%) and test (20%) datasets. We used stratified sampling to avoid missing classes in training data.  
 For the Simple average model, we computed the average of trainval data and used it as a prediction on test set. The average delay of payments that exceeded the first action was **128.2179** days. Simple average model provided root mean squared error (RMSE) **213.3069**.  
-For the Elastic net regression, hypergrid was defined to tune the parameters. We decided to use hold-out method as well as 10-fold cross-validation to find the optimal values of hyper parameters. Results can be found in the table below.  
+For the Elastic net regression, hypergrid was defined to tune the parameters. We decided to use holdout method as well as 10-fold cross-validation to find the optimal values of hyper parameters. Results can be found in the table below.  
 
 
 |alpha|lambda|rmse_ho|rmse_cv|
@@ -265,19 +266,19 @@ For the Elastic net regression, hypergrid was defined to tune the parameters. We
 |0|0|74.78015|73.95688|
  
 
-As can be seen, minimum RMSE of both cross-validation and hold-out was selected with hyper parameters *alpha = 0* and *lambda = 0*. Analyzing hypergrid, we discovered that minimum RMSE was connected to lambda being always 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization. 
+As can be seen, minimum RMSE of both cross-validation and holdout was selected with hyper parameters *alpha = 0* and *lambda = 0*. Analyzing hypergrid, we discovered that minimum RMSE was connected to lambda being always 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization. 
 Having optimal parameters, we tested the model on testing data providing RMSE **74.51247 **. Our model exceeded the Simple average benchmark by 65 %. Variable importance of the CV regression model can be seen on Figure \@ref(fig:varIm).
 
 Based on the request from our sponsor, we analyzed performance of the created model on data, that does keep a smaller history of delayed payments. Sponsor wanted us to find out, whether the model performs good when clients do not have a larger history of payment delays. We created a filter using delay_indiv_21, which counts payments delayed for more then 21 days and we decided to leave the maximum of two such payments for each contract. 
 
 As for the Simple average model, the average delay of payments that exceeded the first action was **94.07225**. Simple average model provided root mean squared error (RMSE) **171.6532**.  
-For the Elastic net regression, hypergrid was again defined to tune the parameters. We decided to use hold-out method as well as 10-fold cross-validation to find the optimal values of hyper parameters as in the first model. Results can be found in the table below.
+For the Elastic net regression, hypergrid was again defined to tune the parameters. We decided to use holdout method as well as 10-fold cross-validation to find the optimal values of hyper parameters as in the first model. Results can be found in the table below.
 
 |alpha|lambda|rmse_ho|rmse_cv|
 |-----|------|-------|-------|
 |0|0|88.80294|88.04558|
 
-As can be seen, minimum RMSE of both cross-validation and hold-out was selected with hyper parameters *alpha = 0* and *lambda = 0*. Analyzing hypergrid, we discovered that minimum RMSE was connected to lambda being always 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization.Having optimal parameters, we tested the model on testing data providing RMSE **89.4216 **. Using cross-validation, our model exceeded the Simple average benchmark by 47,9 %. Variable importance of the CV regression model can be seen on Figure \@ref(fig:varImFilter).
+As can be seen, minimum RMSE of both cross-validation and holdout was selected with hyper parameters *alpha = 0* and *lambda = 0*. Analyzing hypergrid, we discovered that minimum RMSE was connected to lambda being always 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization.Having optimal parameters, we tested the model on testing data providing RMSE **89.4216 **. Using cross-validation, our model exceeded the Simple average benchmark by 47,9 %. Variable importance of the CV regression model can be seen on Figure \@ref(fig:varImFilter).
 
 # Discussion
 All three models passed the criteria desired by our sponsor. The AUC for model prediction delay of 21+ days was 0.946 and its accuracy 88.66%. The AUC for the second classification model was 0.974 and its accuracy was 96.65%. We assume such good results were achieved due to thorough feature engineering which captured clients' past behavior accurately and due to this past behavior being the most valuable knowledge for predicting future behavior.  
@@ -294,12 +295,20 @@ We generated two classification models and one prediction model using existing c
 As the collection process in case of client's delay originally consisted of three thresholds (21 days, 70 days, 140 days), we suggest creating a new model predicting if the client delays payment past 70 days. Additionally, conditional probabilities between the delays at each threshold should be explored, as each significant delay implies increased costs. As for the prediction model, we recommend deriving *mean_delay_1/3/6/12m* features after splitting the data into training, validation and test datasets. We further recommend exploring mean delay in days for delays past the second and the third threshold.
 In addition, we recommend to explore more sophisticated methods, such as neural nets for classification and regression trees or neural nets for prediction. From business perspective, it might prove useful to perform cost-benefit analysis based on confusion matrices from the classification tasks (identifying costs associated with true positives, true negatives, false positives and false negatives).
 
-# Figures
+# Contact information
+For future inquiries, please contact us at:
+Matouš Eibich, eibm00@vse.cz
+Lenka Šťastná, stal04@vse.cz
+Thanh Tung Tran, trat04@vse.cz
+Ivana Stanová, stai02@vse.cz
+Daria Ponomarenko, pond00@vse.cz
+
+# Attachments
 ```{r correlogram, eval=TRUE, echo=FALSE, fig.cap="\\label{fig:correlogram}Correlation plot."}
-p.mat <- data_collection[, -c(3, 8)] %>%
+p.mat <- data_collection[, -c(1,2,5:8,17,20)] %>%
   select_if(is.numeric) %>%
   cor_pmat()
-correlogram <- data_collection %>%
+correlogram <- data_collection[, -c(1,2,5:8,17,20)] %>%
   drop_na() %>%
   select_if(is.numeric) %>%
   cor %>%
@@ -314,8 +323,8 @@ correlogram <- data_collection %>%
 print(correlogram)
 ```
 
-```{r correlogramPairs, echo=FALSE, fig.cap="\\label{fig:corrPairs} Top 15 most correlated variables. ", out.width = '90%'}
-knitr::include_graphics("top15_correlation.jpg")
+```{r correlogramPairs, echo=FALSE, fig.cap="\\label{fig:correlogramPairs} Top 15 most correlated variables. ", out.width = '90%'}
+knitr::include_graphics("top15_correlation.png")
 ```
 
 ```{r density, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:density}Density plots."}
@@ -1115,6 +1124,8 @@ statistics_plots <- grid.arrange(grobs = statistics_plots, ncol = 2)
 
 ![(#fig:lift140) Lift curve (140+ delay)](.//lift140.png)
 
+![(#fig:filteredAUC21) ROC curve and AUC (21+ delay), prediction on non-delayed data](.//filtered_21_AUC_roc.png)
+
 ```{r varIm, echo=FALSE, fig.cap="\\label{fig:varIm}Variable importance for glmnet cv", out.width = '90%'}
 knitr::include_graphics("delay_varImp.png")
 ```
@@ -1130,8 +1141,6 @@ knitr::include_graphics("varimp21.png")
 ```{r varIm140, echo=FALSE, fig.cap="\\label{fig:varIm21}Variable importance (delay 140+)", out.width = '90%'}
 knitr::include_graphics("varimp140.png")
 ```
-
-# Tables
 
 ```{r Missing-stat, echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
 variables_miss <- miss_var_summary(data_collection)
