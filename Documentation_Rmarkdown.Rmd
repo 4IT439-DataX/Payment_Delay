@@ -3,14 +3,14 @@ title: "Documentation of the Payment Delays Project"
 author: "Ivana Stanova, Lenka Stastna"
 date: "10 1 2021"
 output:
-  bookdown::pdf_document2:
-    fig_caption: yes
-    keep_tex: true
   bookdown::html_document2:
     fig_caption: yes
     toc: true
     toc_depth: 2
     number_sections: true
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: true
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, fig.width = 12, fig.height = 8)
@@ -226,7 +226,7 @@ Maximum accuracy for both cross-validation and holdout method was achieved with 
 
 We calculated the top decile lift to be 2.064 by ordering the data by the predictors and computing the proportion of positives in the top 10%. For lift curve please refer to \@ref(fig:lift21).
 
-We were asked by our sponsor to additionally test out if the model could recognize clients that have yet to delay their payments. This was achieved by filtering out the payments that have been delayed and leaving only non-delayed payments. For results, please refer to Figure \@ref(fig:filteredAUC21)
+We were asked by our sponsor to additionally test out if the model could recognize clients that have yet to delay their payments. This was achieved by filtering out the payments that have been delayed and leaving only payments with a maximum of 2 delays past 21 days. For results, please refer to Figure \@ref(fig:filteredAUC21)
 
 ## Prediction model (140+ days) 
 The goal of this classification task was to predict if the customer will be delayed in payment for 140 and more days. The expectation was for AUC to exceed 0.7.
