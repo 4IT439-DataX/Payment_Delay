@@ -1316,5 +1316,11 @@ data_prepared <- data_prepared %>%
 ## Exploratory analysis
 
 gg_miss_var(data_prepared)
+install.packages("lares")
+remotes::install_github("laresbernardo/lares")
+library(lares)
+corr_cross(data_prepared, # name of dataset
+           max_pvalue = 0.05, # display only significant correlations (at 5% level)
+           top = 15 )# display top 10 couples of variables (by correlation coefficient)
 
 

@@ -24,19 +24,20 @@ library(Metrics)
 
 
 install.packages("remotes")
+library(remotes)
 remotes::install_github("laresbernardo/lares")
 library(lares)
-
 
 #rm(list = ls()) #clear
 #cat(rep("\n",128)) #quick and dirty clear console
 
-
+################################################################################
+##### Prepare the data 
+################################################################################
 
 #load data
-data_collection <- read.delim("data_collection_prepared_v2.txt", sep = ";", dec = ".")
+data_collection <- read.delim("..\\data_collection_prepared_new.txt", sep = ";", dec = ".")
 #str(data_collection)
-
 
 # Convert columns to the correct data type
 data_collection <- data_collection %>%
@@ -79,25 +80,25 @@ data_collection <- data_collection %>%
   mutate(delay_21_y = as.factor(delay_21_y))
 
 #High corr assumptions 
-cor.test(data_collection$payment_order, data_collection$contract_id,
-         method = "pearson") #-0.3792006 - do not exclude
 cor.test(data_collection$due_amount, data_collection$paid_amount,
          method = "pearson") #0.9976633 - exclude
 
+#Top 15 the most ranked cross-correlations 
+corr_cross(data_collection_delay, # name of dataset
+           max_pvalue = 0.05, # display only significant correlations (at 5% level)
+           top = 15 )# display top 15 couples of variables (by correlation coefficient)
 
-# Excluding living_area - not possible to calculate fully, not significant
-cor.test(data_collection$living_area, data_collection$delay,
-         method = "pearson")
-data_collection_delay <- subset(data_collection_delay, select = -living_area)
+# Uncomment when predicting on a smaller history of delays greater than 21 for a contract
+ # data_collection <- filter(data_collection, delay_indiv_21 < 2)
 
-## Plots for investigation
-plot(x=data_collection_delay$payment_date, y=data_collection_delay$delay)
-plot(x=data_collection_delay$due_date, y=data_collection_delay$delay)
+#  Exclude irrelevant variables
+# too correlated with paid_amount
+data_collection_delay <- subset(data_collection, select = -due_amount) 
+# too correlated with delay
+data_collection_delay <- subset(data_collection_delay, select = -due_date) 
+# excluding contract_id
+data_collection_delay <- subset(data_collection_delay, select = -contract_id)
 
-## Get rid of irrelevant columns
-data_collection_delay <- data_collection[,-(27:30)] #delay_140_y, delay_indiv_21/140 - high correlation
-data_collection_delay <- subset(data_collection_delay, select = -due_amount) #high correlation due_anount with paid_amount
-data_collection_delay <- subset(data_collection_delay, select = -due_date) #too corr
 
 # if NA in mean_delay_1/3/6/12m replace with 0 
 data_collection_delay$mean_delay_1m[is.na(data_collection_delay$mean_delay_1m)] <- 0
@@ -105,81 +106,16 @@ data_collection_delay$mean_delay_3m[is.na(data_collection_delay$mean_delay_3m)] 
 data_collection_delay$mean_delay_6m[is.na(data_collection_delay$mean_delay_6m)] <- 0
 data_collection_delay$mean_delay_12m[is.na(data_collection_delay$mean_delay_12m)] <- 0
 
-#Pair correlation check
-cor.test(data_collection_delay$mean_delay_1m, data_collection_delay$delay,
-                method = "pearson") # corr 0.9558052 - exclude
-cor.test(data_collection_delay$mean_delay_3m, data_collection_delay$delay,
-         method = "pearson") #corr 0.9299724 - exclude
-cor.test(data_collection_delay$mean_delay_6m, data_collection_delay$delay,
-         method = "pearson") #corr 0.8745395 - exclude
-cor.test(data_collection_delay$mean_delay_12m, data_collection_delay$delay,
-         method = "pearson") #corr 0.7407999 - exclude
-
-data_collection_delay <- subset(data_collection_delay, select = -c(mean_delay_12m,mean_delay_6m,mean_delay_3m))
-
-data_delay_adj <- data_collection_delay #for lm
-
-
-#############################################
-### LM for average pred from mean_delay_1m
-
-data_delay_adj <- subset(data_delay_adj, select = -c(delay_21_y,delay))
-
-
-set.seed(550) #fix the random number generator
-
-
-## Split for 80:20 for train and test
-
-n <- nrow(data_delay_adj)
-# Randomly shuffle the data
-data_delay_adj <- data_delay_adj[sample(n), ]
-nr_trval_s <- round(0.80 * n)
-index_trval_s <- sample(1:n, nr_trval_s)
-
-dt_trval_s <- data_delay_adj[index_trval_s, ]
-dt_test_s <- data_delay_adj[-index_trval_s, ]
-
-
-#lm model - exclude client_email+kzmz_flag (cannot build model with it)
-lm <- lm(mean_delay_1m~contract_id+living_area+payment_order+different_contact_area+kc_flag+cf_val
-         +payment_date+paid_amount+product_type+contract_status+business_discount+gender
-         +marital_status+number_of_children+number_other_product+clients_phone+client_mobile
-         +total_earnings+birth_year+birth_month+living_area, 
-         data = dt_trval_s)
-pred_lm <- predict(lm, newx = dt_test_s)
-rmse(dt_trval_s$mean_delay_1m, pred_lm)
-#88.0645
-#summary(lm)
-
-
-
-#########################################
-###Model - searching for best hyper parametres
-
-#exceeded 1.action only 
-data_collection_delay <- subset(data_collection_delay, select = -mean_delay_1m)
+# Filter rows with delay greater than 21.
 data_collection_delay <- subset(data_collection_delay, data_collection_delay$delay_21_y == 1)
-data_collection_delay <- subset(data_collection_delay, select = -delay_21_y) #sorted by delay_21_y == 1, factor is not needed anymore
+#  Exclude delay_21_y, not needed anymore
+data_collection_delay <- subset(data_collection_delay, select = -delay_21_y)
 
-data_collection_delay <- subset(data_collection_delay, select = -number_of_children)
-
-mean(data_collection_delay$delay, trim = 0, na.rm = FALSE)
-# 128.4093
-
-
-#not necessary, for speedup
-#data_collection_delay <- sample_n(data_collection_delay, size = 10000) 
-
-#Top 15 the most ranked cross-correlations 
-corr_cross(data_collection_delay, # name of dataset
-           max_pvalue = 0.05, # display only significant correlations (at 5% level)
-           top = 15 )# display top 10 couples of variables (by correlation coefficient)
-
-
+#  Split the data
+#fix the random number generator
+set.seed(500) 
 #Total splitting data 60:20:20 
 #stratified sampling using the caret package (to avoid missing classes in training data)
-
 n <- nrow(data_collection_delay)
 # Randomly shuffle the data
 data_collection_delay <- data_collection_delay[sample(n), ]
@@ -201,14 +137,30 @@ data_model_matrix_test <- model.matrix(delay ~ ., dt_test)
 data_model_matrix_trval <- model.matrix(delay ~ ., dt_trval) 
 
 
+##############################################################################
+##### Baseline model - SIMPLE AVERAGE 
+##############################################################################
+
+simple_average <- mean(dt_trval$delay, trim = 0, na.rm = FALSE)
+# 128.2179
+# 94.07225 - with filter delay_indiv_21 < 2
+rmse(dt_test$delay, simple_average)
+#  213.3069
+#  171.6532 - with filter delay_indiv_21 < 2
+
+################################################################################
+##### Model - searching for best hyper parametres with HOLDOUT
+################################################################################
+
 #defining grid to tune the parameters
 hyper_grid <- expand.grid(
-  alpha = seq(from = 0 , to = 1, by = 0.5),
+  alpha = seq(from = 0 , to = 1, by = 0.1),
   lambda = seq(from = 0, to = 100, length.out = 50),
   rmse_ho = NA, #for hold out
   rmse_cv = NA #for cross validation
 )
 
+#  change memory limit
 memory.size() 
 memory.limit() #16198
 memory.limit(size=560000) 
@@ -249,10 +201,13 @@ fit_elnet_reg_ho <- glmnet(
 
 #Evaluation of rmse on testing data
 rmse_test_ho = rmse(dt_test$delay,  predict(object = fit_elnet_reg_ho, newx =  data_model_matrix_test))
+print(rmse_test_ho)
+# 74.51247
+# 89.4216 - with filter delay_indiv_21 < 2
 
-
-#####Cross validation and hold out for testing
-#replacing hold out of validation part with 10-fold CV
+################################################################################
+##### Model - searching for best hyper parameters with CROSS VALIDATION
+################################################################################
 K = 10 # Creating 10 equally sized folds (data were randomly shuffled)
 
 folds <- cut(seq(1, nrow(dt_trval)), breaks = K, labels = F)
@@ -296,16 +251,17 @@ opt_row_cv = which.min(hyper_grid[,"rmse_cv"])
 
 opt_par = hyper_grid[c(opt_row_ho, opt_row_cv),] 
 print(opt_par)
-#Parameters and validation rmse are similar
 
-#results for all rows
-#   alpha lambda   rmse_ho   rmse_cv
-#       0      0 69.7145 69.77177
-#1.1    0      0 69.7145 69.77177
+#       alpha l ambda  rmse_ho    rmse_cv
+# 1       0      0    74.78015   73.95688
+# 1.1     0      0    74.78015   73.95688
+
+# - with filter delay_indiv_21 < 2 
+#       alpha  lambda rmse_ho     rmse_cv
+# 1       0      0    88.80294   88.04558
+# 1.1     0      0    88.80294   88.04558
 
 #alpha and lambda = 0
-
-###improvement for 26%
 
 #Estimation of rmse on test data using train and validation data for training
 fit_elnet_reg_cv <- glmnet(
@@ -314,23 +270,52 @@ fit_elnet_reg_cv <- glmnet(
   alpha = hyper_grid[opt_row_cv,"alpha"],
   lambda = hyper_grid[opt_row_cv,"lambda"],
   standardize = TRUE, 
-  intercept = TRUE,
-  family = "gaussian")
+  intercept = TRUE, 
+  family = "gaussian",
+  nfolds = 10)
 
 rmse_test_cv = rmse(dt_test$delay,  predict(object = fit_elnet_reg_cv, newx =  data_model_matrix_test))
 
 #rmse on testing data result
-rmse_test_ho #rmse_test_cv is similar as mentioned before
-#70.44583
+rmse_test_cv #rmse_test_cv is similar as mentioned before
+# 74.51247
+# - with filter delay_indiv_21 < 2 
+# 89.4216 
+
+################################################################################
+##### Variables importance
+################################################################################
+install.packages("vip")
+library(vip)    # for partial importance plots
+vip(fit_elnet_reg_cv, bar = FALSE, horizontal = FALSE, size = 1, metric = "rmse",
+    aesthetics = list(colour = "black",fill = "darkgreen"))
+vi(fit_elnet_reg_cv,)
 
 
-## results of prediction without excludind all actions where delay_21_y = 0
-####################################
-#    alpha lambda  rmse_ho  rmse_cv
-#1       0      0 49.71518 49.39777
-#1.1     0      0 49.71518 49.39777
+# Variable           Importance Sign 
+# <chr>                   <dbl> <chr>
+#   1 delay_140_y            165.   POS  
+# 2 product_type5           22.3  NEG  
+# 3 contract_status8        18.5  POS  
+# 4 product_type4           11.8  NEG  
+# 5 contract_status6        10.3  POS  
+# 6 client_emailTRUE        10.1  POS  
+# 7 business_discount1       8.71 NEG  
+# 8 delay_indiv_140          7.13 NEG  
+# 9 product_type3            7.08 NEG  
+# 10 contract_status7         6.31 POS  
 
-#rmse_test_ho 
-#49.1148
-##better than lm for 79% 
-##betten than only with delay_21_y = 1 for 40%
+#  VARIABLE IMPORTANCE - with filter delay_indiv_21 < 2 
+# Variable         Importance Sign 
+# <chr>                 <dbl> <chr>
+#   1 delay_140_y           371.  POS  
+# 2 delay_indiv_140       226.  NEG  
+# 3 contract_status9       93.0 POS  
+# 4 delay_indiv_21         21.7 NEG  
+# 5 client_emailTRUE       18.1 POS  
+# 6 contract_status8       16.9 POS  
+# 7 contract_status6       16.5 POS  
+# 8 product_type5          16.3 NEG  
+# 9 product_type4          12.8 NEG  
+# 10 contract_status7       11.1 POS  
+>
