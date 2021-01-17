@@ -1,18 +1,17 @@
 ---
-title: "Documentation"
-author: "Lenka Stastna, Ivana Stanova"
-date: "19 11 2020"
+title: "Documentation of the Payment Delays Project"
+author: "Ivana Stanova, Lenka Stastna"
+date: "10 1 2021"
 output:
+  bookdown::pdf_document2:
+    fig_caption: yes
+    keep_tex: true
   bookdown::html_document2:
     fig_caption: yes
     toc: true
     toc_depth: 2
     number_sections: true
-  bookdown::pdf_document2:
-    fig_caption: yes
-    keep_tex: true
 ---
-
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, fig.width = 12, fig.height = 8)
 library(tidyverse)
@@ -23,9 +22,18 @@ library(skimr)
 library(ggcorrplot)
 library(gridExtra)
 ```
+# Business Understanding
+The main topic of this data science project is to optimize the collection process. Sponsor of the project is Mr. Jiří Procházka, who decided on the scope of the project, provided data and helped define project deliverables.  
+
+First of all, it was important to understand the collection process. Clients are paying a certain amount due to a certain date. If the client delays his payment, certain collection procedure takes place because of the costs that rise for the company. There are three actions taking place under different conditions. If the payment is delayed for 21 - 69 days, first action is taken. Second action is taken if the delay is between 70 - 139 days and the third action is taken for delay greater than 140 days.  
+Our goal was to create three models. First model predicts whether the customer will be delayed in payment for 21+ days. Second model predicts whether the customer will be delayed in payment for 140+ days. Lastly, third model should estimate the average number of days delayed if the client would exceed the first action. All three models were defined baseline accuracy, to which created models were compared.  
+
+As one of the deliverables, project documentation describes project flow. Project consisted of three major steps: Data preparation, Modeling, Evaluation. All of the phases are described in detail with visualized results and findings in this document.  
+We chose to use R studio to prepare the data, create models and evaluate, RMarkdown was used to create documentation of the project.
 
 ```{r load, eval=TRUE, include=FALSE, cache=TRUE}
-data_collection <- read.csv("D:/Dokumenty/ŠKOLA/4IT439 Data-X – aplikované analytické datové modely v reálných úlohách/Semestrálka/payment_dates_final.csv")
+path_to_data <- "D:/Dokumenty/ŠKOLA/4IT439 Data-X – aplikované analytické datové modely v reálných úlohách/Semestrálka/payment_dates_final.csv"
+data_collection <- read.csv(path_to_data)
 data_collection <- data_collection %>%
   mutate(due_date = as.Date(due_date, format = "%Y-%m-%d"))
 data_collection <- data_collection %>%
@@ -71,40 +79,18 @@ data_collection$delay <- difftime(data_collection$payment_date,
   data_collection$due_date, tz,
   units = "days"
 )
-data_collection <- data_collection %>% drop_na(payment_order, payment_date)
-data_group = data_collection %>%
-  select(contract_id, payment_order, due_date, living_area, different_contact_area, kc_flag, cf_val) %>%
-  group_by(contract_id, payment_order, due_date ) %>%
-  filter(row_number()==1)
-data_group2 = data_collection %>%
-  select(contract_id, payment_order, due_date, payment_date) %>%
-  group_by(contract_id, payment_order, due_date ) %>%
-  summarize(payment_date=last(payment_date))
-data_group3 = data_collection %>%
-  select(contract_id, payment_order, due_date, product_type, contract_status, business_discount, gender,
-         marital_status, number_of_children, number_other_product, clients_phone, client_mobile, client_email, total_earnings,
-         birth_year, birth_month, kzmz_flag, due_amount, paid_amount) %>%
-  group_by(contract_id, payment_order, due_date ) %>%
-  filter(row_number()==1)
-data_total = left_join(data_group, data_group2) 
-data_total = left_join(data_total, data_group3)  
-data_final <- data_total %>% drop_na(living_area, different_contact_area, cf_val)
-data_collection <- data_final
 data_collection <- data_collection %>%
   mutate(delay = as.numeric(delay))
-p.mat <- data_collection %>%
-  select_if(is.numeric) %>%
-  cor_pmat
 ```
-
+# Data Preparation
 ## Data Understanding
 ### Data Description Report
 
-The initial data was provided in a comma-separated values file, and was loaded and processed using the R programming language. Dataset used in this analysis contains 2 353 012 observations and 24 variables. Out of the 24 variables, 13 are of factor datatype, 9 are numeric and 2 are dates.
-All columns from the initial data were converted to the correct datype according to the data description file, which was provided. Column "payed_ammount" was replaced by column "paid_amount". Column "payment_date" originally contained some blank fields, which were subsequently filled in as NA.
+The initial data was provided in a comma-separated values file, and was loaded and processed using the R programming language. Dataset used in this project contains 2 353 012 observations and 24 variables. Out of the 24 variables, 13 are of factor datatype, 9 are numeric and 2 are dates. All columns from the initial dataset were converted to the correct datype according to the data description file, which was provided. Column *payed_ammount* was replaced by column *paid_amount*. Column *payment_date* originally contained some blank fields, which were subsequently filled in as NA.
+We also created a new feature *delay* at the beginning of our work as the target variable. Variable stands for the difference between *payment_date* and *due_date*.
 
 |Column name|Description|Type|Values|
-|-----------|-----------|-----------|
+|-----------|-----------|----|-------|
 |contract_id|Unique identificator of the contract|Int|{1,2,3,…,N}|
 |payment_order|Order of the payment|Int|{1,2,3,…}|
 |due_date|Payment deadline|Date|YY/MM/DD|
@@ -125,17 +111,204 @@ All columns from the initial data were converted to the correct datype according
 |living_area|Region of the client home address|Factor|{1,2,3,…}|
 |different_contact_area|T/F if the client filled different home and contact address|Factor|{True, False}|
 |kc_flag|T/F if the client does not home local citizenship|Factor|{True, False}|
-|cf_val|If the special measure during the underwriting was applied|||
+|cf_val|If the special measure during the underwriting was applied|Numeric|{-N,...,N}|
 |kzmz_flag|T/F if the client filled in employer|Factor|{True, False}|
 |due_amount|Installment what should be payed|Numeric|(0,…)|
 |payed_amount|What was payed at a certain date|Numeric|(0,…)|
+|delay|Difference between payment_date and due_date|Int|{-N,...,N}|
 
-#### Value ranges
-Frequency, relative frequency and relative cumulative frequency were computed for each category in all categorical variables. All frequency tables can be located in the "frequencies" list.
+### Attribute correlations
+We computed correlation coefficients between all possible pairs of numeric variables, see Figure \@ref(fig:correlogram), and discovered strong positive correlation between *due amount* and *paid amount*. This could be due to the fact that in the event that the installment has already been paid, the due amount and the paid amount would assume the same value. Correlation between the remaining pairs of numeric variables was either nonexistent or negligible.  
+Then, the significance of correlation between due amount and paid amount was tested using Pearson's product moment correlation coefficient. The pair of attributes was found to be significantly correlated with a correlation coefficient  of 0.76 and p-value less than 2.2e-16.  
+Relationship between categorical variables was tested using chi-squared test with the significance level of 0.05. All significantly correlated pairs of variables can be accessed in "categorical_rel" dataframe.
 
-#### Attribute correlations
-```{r correlogram, echo=FALSE, fig.cap="\\label{fig:correlogram}Correlation plot"}
-correlogram <- data_collection %>%
+On \@ref(fig:correlogramPairs) we can see the top 15 most correlated pairs of attributes in the data. The highest correlation have *paid_amount* and *due_amount* as was already mentioned. Second highest correlation has *business_discount_1* and *product_type_1*. The highest negative correlation is between variables *product_type_1* and *total_earnings_not_declared*.
+
+### Basic statistics
+Basic statistics computed for numeric variables can be located in Table \@ref(tab:Stats). Frequency, relative frequency and relative cumulative frequency were computed for each categorical variable and its categories. All frequency tables can be located in the "frequencies" list.
+
+## Data Exploration Report
+Distribution of numeric and categorical variables was visualized using boxplots, density plots and histograms, see Figure \@ref(fig:density) and Figure \@ref(fig:boxplots). Next, we performed bivariate analysis of continuous variables with respect to categorical variables on selected pairs of features. The results for depedence on gender can be accessed in tables "data_GPA" (dependence of paid amount on gender), "data_GD" (Statistical dependence of delay on gender), "data_GDA" (Statistical dependence of due amount on gender). We found out that business discount applies only to product type 1, as seen in Figure \@ref(fig:delay-gender-prod). Product type 1 displayed the highest median delay at around 25 days, followed by products 2, 3, 4, all with median delay at around 10 days. Product type 5 displayed the lowest median delay. The results did not significantly differ between the genders.
+
+## Data Quality Report
+### Data coverage
+Next step consisted of the data coverage and plausibility analysis.  
+We did not find the results surprising, but as an example, we have chosen a couple of plots, that indicate interesting data distribution. We, for example, found out that clients mostly order the product type 1, contracts are mostly in status 5 or that most of the payments have a discount. We also discovered, that the marital status of the clients is mostly number 3 and they have most frequently no children. Clients also very frequently do not provide information about their earnings and they usually ordered 1 other product. Although the distribution of values across factor variables is not even, we do not think, the findings have to be analyzed closely.All the mentioned findings can be seen on visualizations in Figure \@ref(fig:distribution). 
+
+### Missing values
+Exploring the NA values in the dataset, we found out, that 4 attributes had 
+almost the same percentage of missing values, as can be seen in the statistics \@ref(tab:Missing-stat).  
+Attributes *kc_flag*, *living_area*, *cf_val* and *different_contact_area* have the most missing values, almost 20 %, whereas *payment_order* has around 3,5 % and *payment_date* and *delay* have the same percentage, almost 0,5 %.  
+Using a different visualization, that can be seen in Figure \@ref(fig:Missing-complex) or Figure \@ref(fig:missing-H), we discovered, that the four attributes with the highest percentage are 
+not missing at random but almost all at the same time.  
+We found out, that contract_id together with payment_order were not creating a unique key of the payment. One payment was divided into multiple parts, which was also causing problem with NA values in the four attributes. Data in the four attributes were not copied into other parts of a payment, but were present in just the first payment part.  
+We decided to unify the payment parts into only one payment by summarizing the paid amount of all the parts and using the payment_date of the last paid part. Thanks to the unification, the amount of NA values has markedly decreased.  
+Secondly, we dealt with the NA values in payment_order and payment_date. Since it was only less then 4 % of the dataset, and it was not possible to substitute the values, we decided to delete the rows.  
+
+## Feature engineering
+
+```{r load_new_data, eval=TRUE, include=FALSE, cache=TRUE}
+data_prepared <- read.delim("D:/Dokumenty/ŠKOLA/4IT439 Data-X – aplikované analytické datové modely v reálných úlohách/Semestrálka/Phase I/data_collection_prepared.txt", header = TRUE, sep = ";", dec = ".")
+data_prepared <- data_prepared %>%
+  mutate(delay_140_y = as.factor(delay_140_y))
+data_prepared <- data_prepared %>%
+  mutate(delay_21_y = as.factor(delay_21_y))
+```
+
+We decided to add new features to create higher-accuracy models. As has already been mentioned, we firstly computed a numeric feature *delay* counting the difference in days between *payment_date* and *due_date*. We selected this variable as our target variable.  
+
+Since we are creating two classification models, deciding whether a new payment will be delayed for more than 21 days or more than 140 days, we created 2 new factor features *delay_21_y* and *delay_140_y*. Value is set to 1 if the payment delay is greater than 21 or greater than 140 days.
+
+We also created a new numerical feature *delay_indiv* counting the mean delay for the whole client´s history. We also computed 2 new numerical features, *delay_indiv_21* and *delay_indiv_140* counting number of delayed payments (21, 140 days) for the whole client's history.
+
+Lastly, numerical features *mean_delay_1m* ,*mean_delay_3m*, *mean_delay_6m*, *mean_delay_12m* are computing the mean delay for the last 1/3/6/12 months in the client´s history.  
+
+## Exploratory analysis of the new features
+Adding new variables, we started to work with 34 variables. We created
+2 factor variables and 8 numerical variables
+
+### Data description report
+
+|Column name|Description|Type|Values|
+|-----------|-----------|----|-------|
+|delay_21_y|T/F if the delay is more than 21 days|Factor|{True, False}|
+|delay_140_y|T/F if the delay is more than 140 days|Factor|{True, False}|
+|delay_indiv|Mean delay for the whole client's history|Int|{-N,...,N}|
+|delay_indiv_21|Cumulative sum of payments delayed for more than 21 days by contract|Int|{1,2,3,…,N}|
+|delay_indiv_140|Cumulative sum of the payments delayed for more than 140 days by contract |Int|{1,2,3,…,N}|
+|mean_delay_1m|Average payment delay for the last month|Int|{-N,...,N}|
+|mean_delay_3m|Average payment delay for the last 3 months|Int|{-N,...,N}|
+|mean_delay_6m|Average payment delay for the last 6 months|Int|{-N,...,N}|
+|mean_delay_12m|Average payment delay for the last 12 months|Int|{-N,...,N}|
+
+### Basic statistics
+ 
+Basic statistics computed for new numeric variables can be located in Table \@ref(tab:Statss).
+First of all we focused on attribute *delay*, as our target attribute.
+On Figure \@ref(fig:statnewdelay), we provided 4 different plots visualizing delay variable. As we can see, the values fluctuate mostly around 0. Although values range from -1673 to 2787, delay median is 17 and delay mean is 22.13. 
+  
+  
+We also computed some basic statistics for the other added attributes. 
+Results can be seen on Figure \@ref(fig:statnew), where we visualized the distribution of delay_indiv and mean delay variables. 
+
+On Figure \@ref(fig:statIndiv) we can see the distribution of variable *delay_indiv_21* and *delay_indiv_140*. Delay greater than 140 is present only in a few payments, whereas delay greater than 21 days is more common.
+
+Lastly, we also analyzed factor variables, *delay_21_y* and *delay_140_y*. Results are visualized on Figure \@ref(fig:helpnew), where almost half (48,2 %) of all the payments were delayed for more than 21 days and only 9 % of all the payments have delay larger than 140 days. 
+
+
+### Missing values
+As can be seen on Figure \@ref(tab:miss-statnew), newly-created features also contain NA values. The highest percentage of missing values has attribute *mean_delay_12m*, almost 55 %. Together with *mean_delay_6m*, *mean_delay_3m* and *mean_delay_1m*, they are the only new attributes holding NA attributes.  
+It is not surprising, that these attributes have the highest percentage of NAs, since they compute results only every 12/6/3/1 months. We decided to replace the NA values by 0, so they can be later used in the modeling part. We assume, that this step should not influence the models.   
+
+# Modeling
+## Prediction model (21+ days) 
+The goal of this classification task was to predict if the customer will be delayed in payment for 21 and more days. The expectation of our sponsor for the model was for area under the curve (AUC) to exceed 0.7.  
+We decided to use penalized logistic regression model (elastic net). The simple model was chosen due to the team having little prior experience with data science. First, we excluded *delay_140_y* (as it was deemed irrelevant for this part of modeling), delay and payment_date (because they caused 100% accuracy). All missing values in *mean_delay_1/3/6/12m* features were replaced by 0.  
+Due to *living_area* having too many levels, we used weight of evidence (WOE) to split living_area into a set of bins (by combining categories with similar WOE) based on similarity of *delay_21_y* variable distribution. For this action, we transformed *delay_21_y* into a numeric datatype. The optimal binning for *living_area* was found to be 4 and the original variable was replaced by the binned version, see Figure \@ref(fig:woe21). Finally, *delay_21_y* was transformed back to factor.  
+
+We calculated information value for the independent variables, with dependent variable being *delay_21_y*. We discovered that *mean_delay_1m*, *mean_delay_3m*, *contract_id*, *mean_delay_6m* and *delay_indiv* provided the most information value.  
+
+The dataset was then split into training (60%), validation (20%) and test (20%) datasets. We used stratified sampling to avoid missing classes in training data.
+Hypergrid was defined to tune the parameters. After fitting the model, variable importance was calculated and we discovered that *mean_delay_1m*, *delay_indiv_21*, *contract_status5*, *delay_indiv_140* and *delay_indiv* provided the best results.
+Afterwards, we used holdout to determine cutoff and to find the best values for alpha and lambda using training data. The optimal cutoff value which maximized both specificity and sensitivity was found to be 43.7%. Using alpha found in the previous step, we used 5-fold cross-validation to find optimal value for lambda (using validation data).  
+The accuracy of created model is 88.66% and the AUC is 0.946, see Figure \@ref(fig:auc21). For confusion matrix, sensitivity and specificity, please refer to the table below.
+
+                Confusion matrix
+            preds2      0      1
+                0 135752  18293
+                1  14608 121512
+                
+            Sensitivity : 0.8692          
+            Specificity : 0.9028 
+
+
+Maximum accuracy for both cross-validation and holdout method was achieved with hyper parameters *alpha = 0* and *lambda = 0*. Analyzing the hypergrid, we discovered that maximum accuracy was connected to lambda always being 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization.
+
+We calculated the top decile lift to be 2.064 by ordering the data by the predictors and computing the proportion of positives in the top 10%. For lift curve please refer to \@ref(fig:lift21).
+
+We were asked by our sponsor to additionally test out if the model could recognize clients that have yet to delay their payments. This was achieved by filtering out the payments that have been delayed and leaving only non-delayed payments. For results, please refer to Figure \@ref(fig:filteredAUC21)
+
+## Prediction model (140+ days) 
+The goal of this classification task was to predict if the customer will be delayed in payment for 140 and more days. The expectation was for AUC to exceed 0.7.
+
+We decided to use penalized logistic regression model (elastic net). The simple model was chosen due to the team having little prior experience with data science. First, we excluded *delay_21_y* (as it was deemed irrelevant for this part of modeling), delay and payment_date (because they caused 100% accuracy). All missing values in *mean_delay_1/3/6/12m* features were replaced by 0.  
+Due to *living_area* having too many levels, we used weight of evidence (WOE) to split *living_area* into a set of bins (by combining categories with similar WOE) based on similarity of *delay_140_y* variable distribution. For this action, we transformed *delay_140_y* into a numeric datatype. The optimal binning for *living_area* was found to be 7 and the original variable was replaced by the binned version, see Figure \@ref(fig:woe140). Finally, *delay_140_y* was transformed back to factor.  
+
+We calculated information value for the independent variables, with dependent variable being *delay_140_y* . We discovered that *mean_delay_1m*, *mean_delay_3m*, *mean_delay_6m*, *delay_indiv_140* and *delay_indiv* provided the most information value.  
+
+The dataset was then split into training (60%), validation (20%) and test (20%) datasets. We used stratified sampling to avoid missing classes in training data.
+Hypergrid was defined to tune the parameters. After fitting the model, variable importance was calculated and we discovered that *mean_delay_1m*, *contract_status6*, *contract_status8*, *delay_indiv_140* and *delay_indiv* provided the best results.  
+Afterwards, we used holdout to determine cutoff and to find the best values for alpha and lambda using training data. The optimal cutoff value which maximized both specificity and sensitivity was found to be 15.1%. Using alpha found in the previous step, we used 5-fold cross-validation to find optimal value for lambda (using validation data).  
+The accuracy of created model is 96.65%, and the AUC is 0.974 see Figure \@ref(fig:auc140). For confusion matrix, sensitivity and specificity, please refer to the table below.
+
+                Confusion matrix
+            preds2    0     1
+                0 256849  3524
+                1  6194  23598
+            
+            Sensitivity : 0.87007         
+            Specificity : 0.97645 
+
+Maximum accuracy for both cross-validation and holdout method was achieved with hyper parameters *alpha = 0* and *lambda = 0*. Analyzing the hypergrid, we discovered that maximum accuracy was connected to lambda always being 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization. The top decile lift is 8.667, for lift curve please refer to \@ref(fig:lift140).
+
+## Estimation of the expected number of days of delay when the client triggers first action
+The goal of the last model is to estimate the average number of days delayed if the client exceeds the first action. 
+The expectation of our sponsor was to create a model better than the Simple average model by at least 30%. We decided to use Elastic net regression for the predictions. Simpler model was 
+selected because of little prior experience with data science among team members.  
+First step was to check the correlations of the attributes. As can be seen on Figure \@ref(fig:correlogram), higher positive correlation was discovered between *due_amount* and *paid_amount*, therefore we decided to exclude *due_amount*. We also excluded attribute *due_date*, because delay was calculated as the difference between *due_date* and *payment_date*.  Lastly, we excluded *contract_id* 
+In the next step, the dataset was filtered by the rows, where *delay_21_y* is equal to 1, therefore we selected only payments with delay greater than 21 days. Variable *delay_21_y* was then excluded. The data was shuffled and split into training (60%), validation (20%) and test (20%) datasets. We used stratified sampling to avoid missing classes in training data.  
+For the Simple average model, we computed the average of trainval data and used it as a prediction on test set. The average delay of payments that exceeded the first action was **128.2179** days. Simple average model provided root mean squared error (RMSE) **213.3069**.  
+For the Elastic net regression, hypergrid was defined to tune the parameters. We decided to use holdout method as well as 10-fold cross-validation to find the optimal values of hyper parameters. Results can be found in the table below.  
+
+
+|alpha|lambda|rmse_ho|rmse_cv|
+|-----|------|-------|-------|
+|0|0|74.78015|73.95688|
+ 
+
+As can be seen, minimum RMSE of both cross-validation and holdout was selected with hyper parameters *alpha = 0* and *lambda = 0*. Analyzing hypergrid, we discovered that minimum RMSE was connected to lambda being always 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization. 
+Having optimal parameters, we tested the model on testing data providing RMSE **74.51247 **. Our model exceeded the Simple average benchmark by 65 %. Variable importance of the CV regression model can be seen on Figure \@ref(fig:varIm).
+
+Based on the request from our sponsor, we analyzed performance of the created model on data, that does keep a smaller history of delayed payments. Sponsor wanted us to find out, whether the model performs good when clients do not have a larger history of payment delays. We created a filter using delay_indiv_21, which counts payments delayed for more then 21 days and we decided to leave the maximum of two such payments for each contract. 
+
+As for the Simple average model, the average delay of payments that exceeded the first action was **94.07225**. Simple average model provided root mean squared error (RMSE) **171.6532**.  
+For the Elastic net regression, hypergrid was again defined to tune the parameters. We decided to use holdout method as well as 10-fold cross-validation to find the optimal values of hyper parameters as in the first model. Results can be found in the table below.
+
+|alpha|lambda|rmse_ho|rmse_cv|
+|-----|------|-------|-------|
+|0|0|88.80294|88.04558|
+
+As can be seen, minimum RMSE of both cross-validation and holdout was selected with hyper parameters *alpha = 0* and *lambda = 0*. Analyzing hypergrid, we discovered that minimum RMSE was connected to lambda being always 0 and alpha then becoming irrelevant and ranging from 0 to 1. The best results were achieved with no penalization.Having optimal parameters, we tested the model on testing data providing RMSE **89.4216 **. Using cross-validation, our model exceeded the Simple average benchmark by 47,9 %. Variable importance of the CV regression model can be seen on Figure \@ref(fig:varImFilter).
+
+# Discussion
+All three models passed the criteria desired by our sponsor. The AUC for model prediction delay of 21+ days was 0.946 and its accuracy 88.66%. The AUC for the second classification model was 0.974 and its accuracy was 96.65%. We assume such good results were achieved due to thorough feature engineering which captured clients' past behavior accurately and due to this past behavior being the most valuable knowledge for predicting future behavior.  
+
+The specificity of both the first and the second model exceeded the sensitivity, meaning that the proportion of payments correctly identified as not being delayed past 21 (140) days was higher compared to the proportion of payments correctly predicted as delayed past 21 (140) days. However, it is not known whether the actual cost reduction due to correctly identifying payments which will not be delayed is higher compared to the cost reduction due to correctly identifying payments which will be delayed past a specific threshold.
+
+The third model predicted that the average delay for payments, which were delayed by more than 21 days, was 128.2179 days. The generated model was 65,3 % better than simple average model. 
+
+# Conclusion
+The goal of this data science project was to aid in optimization of the payment collection process by predicting if the clients delay their payments past 21 days and past 140 days. The third task focused on predicting the average number of days delayed if the client exceeds the first action (21 days).
+
+We generated two classification models and one prediction model using existing customer data. The techniques used were penalized logistic regression for classification and regularized linear regression (elastic net) for prediction. The success criteria for classification models were set as AUC>0.7, the prediction model was expected to perform better than simple average model by at least 30%. All of our models managed to exceed these expectations.  
+
+As the collection process in case of client's delay originally consisted of three thresholds (21 days, 70 days, 140 days), we suggest creating a new model predicting if the client delays payment past 70 days. Additionally, conditional probabilities between the delays at each threshold should be explored, as each significant delay implies increased costs. As for the prediction model, we recommend deriving *mean_delay_1/3/6/12m* features after splitting the data into training, validation and test datasets. We further recommend exploring mean delay in days for delays past the second and the third threshold.
+In addition, we recommend to explore more sophisticated methods, such as neural nets for classification and regression trees or neural nets for prediction. From business perspective, it might prove useful to perform cost-benefit analysis based on confusion matrices from the classification tasks (identifying costs associated with true positives, true negatives, false positives and false negatives).
+
+# Contact information
+For future inquiries, please contact us at:
+Matouš Eibich, eibm00@vse.cz
+Lenka Šťastná, stal04@vse.cz
+Thanh Tung Tran, trat04@vse.cz
+Ivana Stanová, stai02@vse.cz
+Daria Ponomarenko, pond00@vse.cz
+
+# Attachments
+```{r correlogram, eval=TRUE, echo=FALSE, fig.cap="\\label{fig:correlogram}Correlation plot."}
+p.mat <- data_collection[, -c(1,2,5:8,17,20)] %>%
+  select_if(is.numeric) %>%
+  cor_pmat()
+correlogram <- data_collection[, -c(1,2,5:8,17,20)] %>%
   drop_na() %>%
   select_if(is.numeric) %>%
   cor %>%
@@ -150,89 +323,9 @@ correlogram <- data_collection %>%
 print(correlogram)
 ```
 
-We computed correlation coefficients between all possible pairs of numeric variables, see Figure \@ref(fig:correlogram), and discovered strong positive correlation between due amount and paid amount. This could be due to the fact that in the event that the installment has already been paid, the due amount and the paid amount would assume the same value. Correlation between the remaining pairs of numeric variables was either nonexistent or negligible.
-Then, the significance of correlation between due amount and paid amount was tested using Pearson's product moment correlation coefficient. The pair of attributes was found to be significantly correlated with a correlation coefficient  of 0.76 and p-value less than 2.2e-16.
-
-Relationship between categorical variables was tested using chi-squared test with the significance level of 0.05. All significantly correlated pairs of variables can be accessed in "categorical_rel" dataframe.
-
-#### Basic statistics
-Basic statistics computed for numeric variables can be located in Table \ref{tab:statistics}. Distribution of numeric and categorical variables was visualized using boxplots, density plots and histograms, see Figure \@ref(fig:boxplots), Figure \@ref(fig:coverage) and Figure \@ref(fig:density).
-
-```{r statistics, echo=FALSE}
-# Summary for each attribute
-headofTable <- c(
-  "Num. of Children", "Num. Other Product", "Year of Birth",
-  "Due amount", "Paid amount", "Delay"
-)
-EX <- c(
-  mean(data_collection$number_of_children),
-  mean(data_collection$number_other_product), mean(data_collection$birth_year),
-  mean(data_collection$due_amount), mean(data_collection$paid_amount),
-  mean(data_collection$delay)
-)
-VarX <- c(
-  var(data_collection$number_of_children),
-  var(data_collection$number_other_product), var(data_collection$birth_year),
-  var(data_collection$due_amount), var(data_collection$paid_amount),
-  var(data_collection$delay)
-)
-Median <- c(
-  median(data_collection$number_of_children),
-  median(data_collection$number_other_product),
-  median(data_collection$birth_year), median(data_collection$due_amount),
-  median(data_collection$paid_amount), median(data_collection$delay)
-)
-Q1 <- c(
-  quantile(data_collection$number_of_children, probs = 1 / 4, na.rm = TRUE),
-  quantile(data_collection$number_other_product, probs = 1 / 4, na.rm = TRUE),
-  quantile(data_collection$birth_year, probs = 1 / 4, na.rm = TRUE),
-  quantile(data_collection$due_amount, probs = 1 / 4, na.rm = TRUE),
-  quantile(data_collection$paid_amount, probs = 1 / 4, na.rm = TRUE),
-  quantile(data_collection$delay, probs = 1 / 4, na.rm = TRUE)
-)
-Q3 <- c(
-  quantile(data_collection$number_of_children, probs = c(3 / 4), na.rm = TRUE),
-  quantile(data_collection$number_other_product, probs = c(3 / 4), na.rm = TRUE),
-  quantile(data_collection$birth_year, probs = c(3 / 4), na.rm = TRUE),
-  quantile(data_collection$due_amount, probs = c(3 / 4), na.rm = TRUE),
-  quantile(data_collection$paid_amount, probs = c(3 / 4), na.rm = TRUE),
-  quantile(data_collection$delay, probs = 3 / 4, na.rm = TRUE)
-)
-Min <- c(
-  min(data_collection$number_of_children),
-  min(data_collection$number_other_product),
-  min(data_collection$birth_year), min(data_collection$due_amount),
-  min(data_collection$paid_amount), min(data_collection$delay)
-)
-Max <- c(
-  max(data_collection$number_of_children),
-  max(data_collection$number_other_product), max(data_collection$birth_year),
-  max(data_collection$due_amount), max(data_collection$paid_amount),
-  max(data_collection$delay)
-)
-summaryData <- distinct(data.frame(headofTable, EX, VarX, Median, Q1, Q3, Min,
-  Max,
-  check.rows = FALSE, check.names = FALSE
-))
+```{r correlogramPairs, echo=FALSE, fig.cap="\\label{fig:correlogramPairs} Top 15 most correlated variables. ", out.width = '90%'}
+knitr::include_graphics("top15_correlation.png")
 ```
-
-## Data Exploration Report
-We found out that contracts are mostly
-most products are type 1
-contract status mostly 1, then 5,6,8,7 some 2,3,4...What does it mean??
-most payments in any part of the payment sequence have a discount
-marital status mostly 3,
-mostly 0 children
-mostly 1 other product
-almost no email contact
-total earning level mostly not declared
-mostly not different contact area
-mostly false KC flag - mostly owns local citizenship
-mostly false KZMZ flag  mostly did not fill employer
-
-## Data Quality Report
-
-## Attachments
 
 ```{r density, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:density}Density plots."}
 density_plots <- list()
@@ -253,14 +346,6 @@ density_plots[[1]] <- data_collection %>%
     x = "Contract ID",
     y = "Count"
   ) +
-  annotate(
-    geom = "text", x = mean(data_collection$contract_id),
-    y = 25, label = "mean", color = "blue"
-  ) +
-  annotate(
-    geom = "text", x = median(data_collection$contract_id),
-    y = 75, label = "median", color = "red"
-  ) +
   theme_minimal()
 
 density_plots[[2]] <- data_collection %>%
@@ -279,14 +364,6 @@ density_plots[[2]] <- data_collection %>%
     title = "Distribution of payment_order",
     x = "Payment order",
     y = "Count"
-  ) +
-  annotate(
-    geom = "text", x = mean(data_collection$payment_order, na.rm = T),
-    y = 0.01, label = "mean", color = "blue"
-  ) +
-  annotate(
-    geom = "text", x = median(data_collection$payment_order, na.rm = T),
-    y = 0.03, label = "median", color = "red"
   ) +
   theme_minimal()
 
@@ -613,7 +690,335 @@ boxplots[[8]] <- data_collection %>%
 boxplots <- grid.arrange(grobs = boxplots, ncol = 4)
 ```
 
-```{r coverage, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:coverage}Distribution of categorical attributes"}
+```{r delay-gender-prod, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE, fig.cap="\\label{fig:delay-gender-prod}Dependence of delay on gender, product type and business discount."}
+data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(gender, delay, color = product_type)) +
+  facet_grid(~business_discount) +
+  labs(
+    title = "Dependence of delay on gender, product type and business discount",
+    x = "Gender",
+    y = "Delay"
+  ) +
+  theme_minimal() +
+  coord_cartesian(ylim = c(-60,60))
+```
+
+```{r distribution, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE, fig.cap="Distribution plots."}
+distribution_plots <- list()
+distribution_plots[[1]] <- data_collection %>%
+  ggplot(aes(product_type)) +
+  geom_bar(fill = "grey70") +
+  labs(
+    title = "Distribution of product_type",
+    x = "Product type",
+    y = "Count"
+  ) +
+  theme_minimal()
+distribution_plots[[2]] <- data_collection %>%
+  ggplot(aes(contract_status)) +
+  geom_bar(fill = "grey70") +
+  labs(
+    title = "Distribution of contract_status",
+    x = "Contract status",
+    y = "Count"
+  ) +
+  theme_minimal()
+distribution_plots[[3]] <- data_collection %>%
+  ggplot(aes(business_discount)) +
+  geom_bar(fill = "grey70") +
+  labs(
+    title = "Distribution of business_discount",
+    x = "Business discount",
+    y = "Count"
+  ) +
+  theme_minimal()
+distribution_plots[[4]] <- data_collection %>%
+  ggplot(aes(marital_status)) +
+  geom_bar(fill = "grey70") +
+  labs(
+    title = "Distribution of marital_status",
+    x = "Marital status",
+    y = "Count"
+  ) +
+  theme_minimal()
+distribution_plots[[5]] <- data_collection %>%
+    ggplot(aes(number_of_children)) +
+  geom_bar(fill = "grey70") +
+  labs(
+    title = "Distribution of number_of_children",
+    x = "Number of children",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+distribution_plots[[6]] <- data_collection %>%
+  ggplot(aes(total_earnings)) +
+  geom_bar(fill = "grey70") +
+  labs(
+    title = "Distribution of total_earnings",
+    x = "Total earnings",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+distribution_plots[[7]] <- data_collection %>%
+  ggplot(aes(product_type)) +
+  geom_bar(fill = "grey70") +
+  labs(
+    title = "Distribution of product_type",
+    x = "Product type",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+distribution_plots[[8]] <- data_collection %>%
+  drop_na() %>%
+  ggplot(aes(number_other_product)) +
+  geom_bar(fill = "grey70") +
+  labs(
+    title = "Distribution of number_other_product",
+    x = "Number other products",
+    y = "Count"
+  ) +
+  theme_minimal()
+distribution_plots <- grid.arrange(grobs = distribution_plots, ncol = 2)
+```
+
+```{r Missing-complex, fig.cap="\\label{fig:Missing-complex}Distribution of missing values.", echo=FALSE, out.width = '90%'}
+gg_miss_upset(data_collection)
+```
+
+```{r missing-H, echo=FALSE, fig.cap="\\label{fig:missing-H}Distribution of missing values", out.width = '90%'}
+knitr::include_graphics("missing_values_plot.png")
+```
+
+```{r statnewdelay, echo=FALSE, eval= TRUE, message=FALSE, warning=FALSE, fig.cap="\\label{fig:stat-newdelay}Basic statistics of the added attribute delay."}
+delay_plots <- list()
+delay_plots[[1]] <- data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(x = delay)) + 
+  geom_histogram() + 
+  xlim(-1000, 1000) +
+  labs(
+    title = "Distribution of delay",
+    x = "Delay",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+delay_plots[[2]] <-  data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(x = delay)) + 
+  geom_histogram() + 
+  scale_y_log10() + 
+  xlim(-1500, 2500) +
+  labs(
+    title = "Distribution of delay on logarithmic scale",
+    x = "Delay",
+    y = "Count"
+  ) +
+  theme_minimal()
+delay_plots[[3]] <- data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(delay)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_prepared$delay, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_prepared$delay, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
+    xlim(-400, 400) +
+  labs(
+    title = "Distribution of delay",
+    x = "Delay",
+    y = "Count"
+  ) +
+  annotate(
+    geom = "text", x = mean(data_prepared$delay, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_prepared$delay, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  theme_minimal()
+
+delay_plots[[4]] <- data_collection %>%
+  drop_na() %>%
+  ggplot() +
+  geom_boxplot(aes(y = delay)) +
+  scale_x_discrete() +
+  labs(title = "Delay") +
+  theme_minimal()
+delay_plots <- grid.arrange(grobs = delay_plots, ncol = 2)
+```
+
+```{r statnew, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:stat-new}Basic statistics of the added attributes."}
+statistics_plots <- list()
+
+statistics_plots[[1]] <- data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(delay_indiv)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_prepared$delay_indiv, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_prepared$delay_indiv, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of delay_indiv",
+    x = "Delay individual",
+    y = "Count"
+  ) +
+  annotate(
+    geom = "text", x = mean(data_prepared$delay_indiv, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_prepared$delay_indiv, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  xlim(-150, 150) +
+  theme_minimal()
+
+statistics_plots[[2]] <- data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(mean_delay_1m)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_prepared$mean_delay_1m, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_prepared$mean_delay_1m, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of mean_delay_1m",
+    x = "Mean delay of 1 month",
+    y = "Count"
+ ) +
+  annotate(
+    geom = "text", x = mean(data_prepared$mean_delay_1m, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_prepared$mean_delay_1m, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  xlim(-150, 150) +
+  theme_minimal()
+
+statistics_plots[[3]] <- data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(mean_delay_3m)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_prepared$mean_delay_3m, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_prepared$mean_delay_3m, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of mean_delay_3m",
+    x = "Mean delay of 3 months",
+    y = "Count"
+ ) +
+  annotate(
+    geom = "text", x = mean(data_prepared$mean_delay_3m, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_prepared$mean_delay_3m, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  xlim(-150, 150) +
+  theme_minimal()
+
+
+statistics_plots[[4]] <- data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(mean_delay_6m)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_prepared$mean_delay_6m, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_prepared$mean_delay_6m, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of mean_delay_6m",
+    x = "Mean delay of 6 months",
+    y = "Count"
+ ) +
+  annotate(
+    geom = "text", x = mean(data_prepared$mean_delay_6m, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_prepared$mean_delay_6m, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  xlim(-150, 150) +
+  theme_minimal()
+
+
+statistics_plots[[5]] <- data_prepared %>%
+  drop_na() %>%
+  ggplot(aes(mean_delay_12m)) +
+  geom_density() +
+  geom_vline(
+    xintercept = mean(data_prepared$mean_delay_12m, na.rm = TRUE),
+    color = "blue",
+    linetype = "dotted", size = 1
+  ) +
+  geom_vline(
+    xintercept = median(data_prepared$mean_delay_12m, na.rm = TRUE),
+    color = "red",
+    linetype = "dotted", size = 1
+  ) +
+  labs(
+    title = "Distribution of mean_delay_12m",
+    x = "Mean delay of 12 months",
+    y = "Count"
+ ) +
+  annotate(
+    geom = "text", x = mean(data_prepared$mean_delay_12m, na.rm = TRUE),
+    y = 0.04, label = "mean", color = "blue"
+  ) +
+  annotate(
+    geom = "text", x = median(data_prepared$mean_delay_12m, na.rm = TRUE),
+    y = 0.02, label = "median", color = "red"
+  ) +
+  xlim(-150, 150) +
+  theme_minimal()
+
+statistics_plots <- grid.arrange(grobs = statistics_plots, ncol = 2)
+```
+
+```{r coverage, echo=FALSE, eval=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:coverage}Distribution of categorical attributes"}
 coverage <- list()
 coverage[[1]] <- ggplot(data = data_collection, aes(x = product_type)) +
   geom_bar() +
@@ -667,4 +1072,218 @@ coverage[[13]] <- ggplot(data = data_collection, aes(x = kzmz_flag)) +
 coverage <- grid.arrange(grobs = coverage, ncol = 3)
 ```
 
+```{r helpnew, echo=FALSE, warning=FALSE, message=FALSE, eval=TRUE, fig.cap="\\label{fig:help_new} Statistics of the factor added attributes.", out.height='40%'}
+statisticss_plots <- list()
 
+statisticss_plots[[1]] <- ggplot(data = data_prepared, aes(x = delay_21_y)) +
+  geom_bar(aes(y = (..count..)/sum(..count..)))  + scale_y_continuous(labels=scales::percent) +
+  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "Count", vjust = -0.25) +
+  labs(title = "Payment delay greater than 21 days", y = "Percent", x = "Delay greater than 21 days")+
+  theme_minimal()
+
+statisticss_plots[[2]] <- ggplot(data = data_prepared, aes(x = delay_140_y)) +
+  geom_bar(aes(y = (..count..)/sum(..count..)))  + scale_y_continuous(labels=scales::percent) +
+  geom_text(aes(y = ((..count..)/sum(..count..)), label = scales::percent((..count..)/sum(..count..))), stat = "Count", vjust = -0.25) +
+  labs(title = "Payment delay greater than 140 days", y = "Percent", x = "Delay greater than 140 days")+
+  theme_minimal()
+statisticss_plots <- grid.arrange(grobs = statisticss_plots, ncol = 2)
+```
+
+```{r statIndiv, echo=FALSE, warning=FALSE, message=FALSE, fig.cap="\\label{fig:stat-new}Basic statistics of the added attributes.", out.height='40%'}
+statistics_plots <- list()
+statistics_plots[[1]] <- ggplot(data = data_prepared, aes(x = delay_indiv_21)) +
+  geom_bar() +
+    labs(
+    title = "Distribution of delay_indiv_21",
+    x = "Individual delay of 21 days",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+statistics_plots[[2]] <- ggplot(data = data_prepared, aes(x = delay_indiv_140)) +
+  geom_bar() +
+  labs(
+    title = "Distribution of delay_indiv_140",
+    x = "Individual delay of 140 days",
+    y = "Count"
+  ) +
+  theme_minimal()
+
+statistics_plots <- grid.arrange(grobs = statistics_plots, ncol = 2)
+```
+
+![(#fig:woe21) Binning for living_area (21+ delay)](.//WOE21.png)
+
+![(#fig:auc21) ROC curve and AUC (21+ delay)](.//AUC21.png)
+
+![(#fig:woe140) Binning for living_area (140+ delay)](.//WOE140.png)
+
+![(#fig:auc140) ROC curve and AUC (140+ delay)](.//AUC140.png)
+
+![(#fig:lift21) Lift curve (21+ delay)](.//lift21.png)
+
+![(#fig:lift140) Lift curve (140+ delay)](.//lift140.png)
+
+![(#fig:filteredAUC21) ROC curve and AUC (21+ delay), prediction on non-delayed data](.//filtered_21_AUC_roc.png)
+
+```{r varIm, echo=FALSE, fig.cap="\\label{fig:varIm}Variable importance for glmnet cv", out.width = '90%'}
+knitr::include_graphics("delay_varImp.png")
+```
+
+```{r varImFilter, echo=FALSE, fig.cap="\\label{fig:varIm}Variable importance for glmnet cv (model with filtered delays)", out.width = '90%'}
+knitr::include_graphics("delay_varImp_filter21.png")
+```
+
+```{r varIm21, echo=FALSE, fig.cap="\\label{fig:varIm21}Variable importance  (delay 21+)", out.width = '90%'}
+knitr::include_graphics("varimp21.png")
+```
+
+```{r varIm140, echo=FALSE, fig.cap="\\label{fig:varIm21}Variable importance (delay 140+)", out.width = '90%'}
+knitr::include_graphics("varimp140.png")
+```
+
+```{r Missing-stat, echo=FALSE, eval=TRUE, message=FALSE, warning=FALSE}
+variables_miss <- miss_var_summary(data_collection)
+knitr::kable(head(n=7, variables_miss), caption = "Statistics of missing values.")
+```
+
+```{r miss-statnew, echo=FALSE, warning=FALSE, message=FALSE}
+variables_miss_new <- miss_var_summary(data_prepared)
+knitr::kable(head(n=4, variables_miss_new), caption="Statistics of missing values of the new variables.")
+```
+
+```{r Stats, echo=FALSE, eval=TRUE}
+# Summary for each attribute
+data_prepared <- data_prepared %>% drop_na(delay)
+
+headofTable <- c(
+  "Num. of Children", "Num. Other Product", "Year of Birth",
+  "Due amount", "Paid amount", "Delay"
+)
+EX <- c(
+  mean(data_collection$number_of_children),
+  mean(data_collection$number_other_product), mean(data_collection$birth_year),
+  mean(data_collection$due_amount), mean(data_collection$paid_amount),
+  mean(data_prepared$delay)
+)
+VarX <- c(
+  var(data_collection$number_of_children),
+  var(data_collection$number_other_product), var(data_collection$birth_year),
+  var(data_collection$due_amount), var(data_collection$paid_amount),
+  var(data_prepared$delay)
+)
+Median <- c(
+  median(data_collection$number_of_children),
+  median(data_collection$number_other_product),
+  median(data_collection$birth_year), median(data_collection$due_amount),
+  median(data_prepared$paid_amount), median(data_collection$delay)
+)
+Q1 <- c(
+  quantile(data_collection$number_of_children, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$number_other_product, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$birth_year, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$due_amount, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_collection$paid_amount, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_prepared$delay, probs = 1 / 4, na.rm = TRUE)
+)
+Q3 <- c(
+  quantile(data_collection$number_of_children, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$number_other_product, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$birth_year, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$due_amount, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_collection$paid_amount, probs = c(3 / 4), na.rm = TRUE),
+  quantile(data_prepared$delay, probs = 3 / 4, na.rm = TRUE)
+)
+Min <- c(
+  min(data_collection$number_of_children),
+  min(data_collection$number_other_product),
+  min(data_collection$birth_year), min(data_collection$due_amount),
+  min(data_prepared$paid_amount), min(data_collection$delay)
+)
+Max <- c(
+  max(data_collection$number_of_children),
+  max(data_collection$number_other_product), max(data_collection$birth_year),
+  max(data_collection$due_amount), max(data_collection$paid_amount),
+  max(data_prepared$delay)
+)
+summaryData <- distinct(data.frame(headofTable, EX, VarX, Median, Q1, Q3, Min,
+  Max,
+  check.rows = FALSE, check.names = FALSE
+))
+knitr::kable(summaryData, caption = "Statistics summary.")
+```
+
+```{r Statss, echo=FALSE, eval=TRUE}
+# Summary for each attribute
+data_prepared$mean_delay_1m[is.na(data_prepared$mean_delay_1m)] <- 0
+data_prepared$mean_delay_3m[is.na(data_prepared$mean_delay_3m)] <- 0
+data_prepared$mean_delay_6m[is.na(data_prepared$mean_delay_6m)] <- 0
+data_prepared$mean_delay_12m[is.na(data_prepared$mean_delay_12m)] <- 0
+
+headofTable_new <- c(
+"delay_indiv", "delay_indiv_21", "delay_indiv_140", "mean_delay_1m", "mean_delay_3m", "mean_delay_6m","mean_delay_12m"
+)
+EX_new <- c(
+  mean(data_prepared$delay_indiv),
+  mean(data_prepared$delay_indiv_21),
+  mean(data_prepared$delay_indiv_140),
+  mean(data_prepared$mean_delay_1m), mean(data_prepared$mean_delay_3m),
+  mean(data_prepared$mean_delay_6m), mean(data_prepared$mean_delay_12m)
+)
+VarX_new <- c(
+  var(data_prepared$delay_indiv),
+  var(data_prepared$delay_indiv_21),
+  var(data_prepared$delay_indiv_140),
+  var(data_prepared$mean_delay_1m), var(data_prepared$mean_delay_3m),
+  var(data_prepared$mean_delay_6m), var(data_prepared$mean_delay_12m)
+  
+)
+Median_new <- c(
+  median(data_prepared$delay_indiv),
+  median(data_prepared$delay_indiv_21),
+  median(data_prepared$delay_indiv_140),
+  median(data_prepared$mean_delay_1m), median(data_prepared$mean_delay_3m),
+  median(data_prepared$mean_delay_6m), median(data_prepared$mean_delay_12m)
+)
+
+Q1_new <- c(
+  quantile(data_prepared$delay_indiv, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_prepared$delay_indiv_21, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_prepared$delay_indiv_140, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_prepared$mean_delay_1m, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_prepared$mean_delay_3m, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_prepared$mean_delay_6m, probs = 1 / 4, na.rm = TRUE),
+  quantile(data_prepared$mean_delay_12m, probs = 1 / 4, na.rm = TRUE)
+  
+)
+Q3_new <- c(
+  quantile(data_prepared$delay_indiv, probs = 3 / 4, na.rm = TRUE),
+  quantile(data_prepared$delay_indiv_21, probs = 3 / 4, na.rm = TRUE),
+  quantile(data_prepared$delay_indiv_140, probs = 3 / 4, na.rm = TRUE),
+  quantile(data_prepared$mean_delay_1m, probs = 3 / 4, na.rm = TRUE),
+  quantile(data_prepared$mean_delay_3m, probs = 3 / 4, na.rm = TRUE),
+  quantile(data_prepared$mean_delay_6m, probs = 3 / 4, na.rm = TRUE),
+  quantile(data_prepared$mean_delay_12m, probs = 3 / 4, na.rm = TRUE)
+  
+)
+Min_new <- c(
+  min(data_prepared$delay_indiv),
+  min(data_prepared$delay_indiv_21),
+  min(data_prepared$delay_indiv_140),
+  min(data_prepared$mean_delay_1m), min(data_prepared$mean_delay_3m),
+  min(data_prepared$mean_delay_6m), min(data_prepared$mean_delay_12m)
+  
+)
+Max_new <- c(
+  max(data_prepared$delay_indiv),
+  max(data_prepared$delay_indiv_21),
+  max(data_prepared$delay_indiv_140),
+  max(data_prepared$mean_delay_1m), max(data_prepared$mean_delay_3m),
+  max(data_prepared$mean_delay_6m), max(data_prepared$mean_delay_12m)
+  
+)
+summaryData_new <- distinct(data.frame(headofTable_new, EX_new, VarX_new, Median_new, Q1_new, Q3_new, Min_new, Max_new,
+                                       check.rows = FALSE, check.names = FALSE
+))
+knitr::kable(summaryData_new, caption = "Statistics summary of the new variables.")
+```
